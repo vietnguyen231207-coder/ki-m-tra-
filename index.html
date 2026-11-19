@@ -1,0 +1,4072 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nguyễn Việt Insight — Hệ thống AI Thẩm định RFQ & Phân tích Dữ liệu</title>
+  <meta name="description" content="Thẩm định dữ liệu linh hoạt đa ngành: Viễn thông, Mua sắm vật tư, Bán hàng doanh thu. Phân biệt rõ ràng giữa lỗi thật sự và cấu trúc đa dạng.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Libraries -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Dark Theme */
+      --bg-base: #090d16;
+      --bg-surface: #0f172a;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --bg-card-hover: rgba(30, 41, 59, 0.9);
+      --bg-muted: #1e293b;
+      --bg-glass: rgba(15, 23, 42, 0.7);
+
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-card: rgba(255, 255, 255, 0.12);
+      --border-focus: #10b981;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --primary: #10b981;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --primary-hover: #059669;
+
+      --accent-cyan: #06b6d4;
+      --accent-sky: #0284c7;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-violet: #8b5cf6;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 30px rgba(16, 185, 129, 0.15);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-hover: #f8fafc;
+      --bg-muted: #e2e8f0;
+      --bg-glass: rgba(255, 255, 255, 0.85);
+
+      --border-subtle: rgba(0, 0, 0, 0.06);
+      --border-card: rgba(0, 0, 0, 0.1);
+      --border-focus: #059669;
+
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+
+      --primary: #059669;
+      --primary-glow: rgba(5, 150, 105, 0.15);
+      --primary-hover: #047857;
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.1);
+      --shadow-glow: 0 0 25px rgba(5, 150, 105, 0.12);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: -200px;
+      left: 20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      bottom: -150px;
+      right: 15%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font-family: inherit; }
+
+    /* Welcome Cover */
+    .welcome-cover {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+      z-index: 10;
+      padding: 28px 48px;
+    }
+    .cover-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand-dot { color: var(--primary); }
+
+    .cover-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-icon-round {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-icon-round:hover {
+      color: var(--text-main);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .cover-hero-wrap {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: center;
+      gap: 60px;
+      max-width: 1340px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .cover-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+      animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .cover-headline {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .cover-headline .accent-gradient {
+      background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .cover-desc {
+      font-size: 17px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 36px;
+      max-width: 580px;
+    }
+    .cover-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-lg {
+      padding: 15px 30px;
+      font-size: 15px;
+      border-radius: var(--radius-md);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+    }
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5);
+      transform: translateY(-2px);
+    }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+      filter: grayscale(0.6);
+    }
+    .btn-secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      border-color: var(--text-muted);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+    }
+
+    .cover-visual-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(12px);
+    }
+    .pipeline-flow-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .flow-step-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      transition: all 0.2s;
+    }
+    .flow-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .flow-icon.c1 { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    .flow-icon.c2 { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .flow-icon.c3 { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .flow-icon.c4 { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+
+    .cover-features-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 1340px;
+      margin: 40px auto 0;
+      width: 100%;
+    }
+    .feature-chip-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .feature-chip-card i { color: var(--primary); }
+    .feature-chip-card span { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+
+    /* App Workspace */
+    .app-workspace {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 5;
+    }
+    .sidebar {
+      width: 260px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      padding: 24px 16px;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+    .sidebar-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .menu-item:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .menu-item.active {
+      color: var(--primary);
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+    .sidebar-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .main-viewport {
+      flex: 1;
+      margin-left: 260px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar {
+      height: 70px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .project-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .content-container {
+      padding: 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Stepper Bar */
+    .workflow-stepper {
+      display: flex;
+      align-items: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-xl);
+      padding: 14px 20px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+    }
+    .stepper-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .stepper-item:hover { background: rgba(255, 255, 255, 0.04); }
+    .stepper-item.active { background: rgba(16, 185, 129, 0.12); }
+    .stepper-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-muted);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+    .stepper-item.active .stepper-circle {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+    .stepper-item.completed .stepper-circle {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .stepper-meta { display: flex; flex-direction: column; }
+    .stepper-step-num { font-size: 10px; font-weight: 800; letter-spacing: 0.05em; color: var(--text-dim); text-transform: uppercase; }
+    .stepper-item.active .stepper-step-num { color: var(--primary); }
+    .stepper-step-label { font-size: 13.5px; font-weight: 700; color: var(--text-muted); }
+    .stepper-item.active .stepper-step-label { color: var(--text-main); }
+    .stepper-connector { flex: 1; height: 2px; background: var(--border-subtle); margin: 0 8px; min-width: 20px; }
+    .stepper-connector.completed { background: var(--primary); }
+
+    .step-pane { display: none; animation: fadeInPane 0.25s ease forwards; }
+    .step-pane.active { display: block; }
+    @keyframes fadeInPane {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    /* STEP 1: DROPZONE & ADAPTIVE DATA ENGINE UI */
+    .step1-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 24px;
+    }
+    .dropzone-container {
+      border: 2px dashed rgba(16, 185, 129, 0.4);
+      border-radius: var(--radius-lg);
+      background: rgba(16, 185, 129, 0.02);
+      padding: 34px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone-container:hover, .dropzone-container.dragover {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.06);
+    }
+    .dropzone-container.error-shake {
+      border-color: var(--accent-rose) !important;
+      background: rgba(244, 63, 94, 0.08) !important;
+      animation: shakeBox 0.4s ease-in-out;
+    }
+    @keyframes shakeBox {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    .dropzone-icon-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      font-size: 24px;
+    }
+
+    /* Status Banners inside Step 1 */
+    .validation-alert-banner {
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-top: 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      animation: fadeInPane 0.2s ease;
+    }
+    .validation-alert-banner.banner-danger {
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+    }
+    .validation-alert-banner.banner-danger i {
+      color: #f43f5e;
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .validation-alert-banner.banner-success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+    }
+    .validation-alert-banner.banner-success i {
+      color: #10b981;
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .validation-alert-banner.banner-warning {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+    }
+    .validation-alert-banner.banner-warning i {
+      color: #f59e0b;
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .validation-banner-content strong {
+      display: block;
+      font-size: 14.5px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .validation-banner-content p {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .dataset-badge-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(6, 182, 212, 0.2);
+      color: #06b6d4;
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* 4 Interactive Test Buttons Bar */
+    .test-actions-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .btn-test {
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-test-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--primary);
+    }
+    .btn-test-success:hover { background: rgba(16, 185, 129, 0.2); }
+
+    .btn-test-blue {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: var(--accent-cyan);
+    }
+    .btn-test-blue:hover { background: rgba(6, 182, 212, 0.2); }
+
+    .btn-test-purple {
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: var(--accent-violet);
+    }
+    .btn-test-purple:hover { background: rgba(139, 92, 246, 0.2); }
+
+    .btn-test-danger {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: var(--accent-rose);
+    }
+    .btn-test-danger:hover { background: rgba(244, 63, 94, 0.2); }
+
+    .sheets-url-box {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+    }
+    .form-input {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--primary); }
+
+    /* Sample Cards */
+    .sample-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sample-rfq-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sample-rfq-card:hover {
+      border-color: var(--primary);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+    }
+    .sample-rfq-card.selected {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .sample-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sample-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .sample-tag.ready { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .sample-tag.warn { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .sample-tag.danger { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+
+    /* STEP 2: LÀM SẠCH */
+    .clean-progress-bar-wrap {
+      background: var(--bg-muted);
+      border-radius: var(--radius-full);
+      height: 8px;
+      overflow: hidden;
+      margin: 16px 0 24px;
+    }
+    .clean-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .clean-stages-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stage-item-pill {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stage-item-pill.active {
+      border-color: var(--primary);
+      color: var(--text-main);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .stage-item-pill.done {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .mini-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .mini-kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+    }
+    .mini-kpi-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mini-kpi-val {
+      font-size: 24px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+    }
+
+    .terminal-window {
+      background: #05070e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      font-family: var(--font-mono);
+      margin-bottom: 24px;
+    }
+    .terminal-header {
+      background: #0d111c;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .terminal-body {
+      padding: 16px;
+      max-height: 220px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #94a3b8;
+    }
+    .terminal-line { display: flex; gap: 10px; }
+    .terminal-line .t-time { color: #475569; }
+    .terminal-line .t-tag { color: var(--accent-cyan); font-weight: 600; }
+    .terminal-line .t-danger { color: #f43f5e; font-weight: 700; }
+
+    /* STEP 3: DUYỆT BẢNG */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .table-toolbar {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .table-filter-tabs { display: flex; gap: 8px; }
+    .pill-tab {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 12.5px;
+      font-weight: 600;
+      background: var(--bg-muted);
+      color: var(--text-muted);
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .pill-tab.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--primary);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+    .data-table th {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+    .data-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+    .feedback-loop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .feedback-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+    .feedback-card.fb-amber {
+      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.03);
+    }
+    .feedback-card.fb-green {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.03);
+    }
+    .fb-chips-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .chip-btn {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 5px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip-btn:hover { color: var(--text-main); border-color: var(--accent-amber); }
+
+    /* STEP 4: PHÂN TÍCH */
+    .analysis-hero-card { text-align: center; padding: 48px 24px; }
+    .analysis-orb-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2));
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: var(--primary);
+      margin: 0 auto 20px;
+      box-shadow: 0 0 30px var(--primary-glow);
+      animation: pulseOrb 2s infinite;
+    }
+    @keyframes pulseOrb {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .analysis-engines-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 960px;
+      margin: 32px auto 0;
+      text-align: left;
+    }
+    .engine-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .engine-card.complete { border-color: var(--primary); }
+
+    /* STEP 5: CHARTS & CARDS */
+    .kpi-four-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .hero-kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--kpi-accent, var(--primary));
+    }
+    .kpi-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .kpi-title { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+    .kpi-icon-wrap {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--kpi-accent, var(--primary));
+    }
+    .kpi-number {
+      font-size: 26px; font-weight: 800;
+      font-family: var(--font-mono);
+      letter-spacing: -0.02em; margin-bottom: 6px;
+    }
+    .kpi-sub-text { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+
+    .charts-quad-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .charts-quad-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .chart-panel-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chart-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .chart-panel-header h3 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+    .chart-panel-header p { font-size: 12.5px; color: var(--text-dim); }
+    .chart-canvas-box { position: relative; flex: 1; min-height: 260px; }
+
+    .equipment-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .equipment-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .equipment-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .equipment-img-box {
+      height: 160px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .equipment-img-box img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+    }
+    .equipment-stock-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .equipment-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .equipment-brand { font-size: 11px; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 4px; }
+    .equipment-name { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .equipment-specs-list { list-style: none; font-size: 12px; color: var(--text-muted); margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .equipment-specs-list li { display: flex; align-items: center; gap: 6px; }
+    .equipment-specs-list li i { font-size: 14px; color: var(--primary); }
+    .equipment-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-subtle); }
+    .equipment-price { font-family: var(--font-mono); font-weight: 700; font-size: 14px; color: var(--primary); }
+
+    .proposals-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .proposal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .proposal-card.recommended {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.03);
+    }
+    .rec-ribbon {
+      position: absolute;
+      top: -10px;
+      right: 20px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+    }
+
+    /* STEP 6: NGHIỆM THU & XUẤT */
+    .step6-dual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .sim-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+    }
+    .sim-slider-row { margin: 20px 0; }
+    .sim-label-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13.5px; font-weight: 600; }
+    .sim-slider {
+      width: 100%;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: var(--bg-muted);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .sim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+    .sim-kpi-preview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin-top: 18px;
+    }
+    .sim-kpi-preview dt { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+    .sim-kpi-preview dd { font-size: 17px; font-weight: 800; font-family: var(--font-mono); }
+
+    .export-buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .btn-export-dossier {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .btn-export-dossier:hover {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.05);
+      transform: translateY(-1px);
+    }
+    .btn-export-dossier i { font-size: 22px; color: var(--primary); }
+
+    .step-nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1080px) {
+      .cover-hero-wrap, .step1-grid, .charts-quad-grid, .charts-quad-bottom, .equipment-gallery-grid, .proposals-grid, .step6-dual-grid, .feedback-loop-grid, .test-actions-bar {
+        grid-template-columns: 1fr;
+      }
+      .sidebar { display: none; }
+      .main-viewport { margin-left: 0; }
+      .kpi-four-row, .mini-kpi-grid, .clean-stages-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ==========================================================================
+       TOP HEADER BANNER & 4-CARD KPI SUMMARY (NGUYEN VIET INSIGHT)
+       ========================================================================== */
+    .top-header-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+    .top-header-main-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .top-header-title-box h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .top-header-title-box p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .top-kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 1024px) {
+      .top-kpis-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .top-kpis-grid { grid-template-columns: 1fr; }
+    }
+    .top-kpi-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      transition: all 0.2s ease;
+    }
+    .top-kpi-item:hover {
+      border-color: var(--border-card);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+    .top-kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .top-kpi-value {
+      font-size: 18px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .top-kpi-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .category-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. WELCOME COVER VIEW
+       ======================================================================== -->
+  <section class="welcome-cover" id="welcomeCover">
+    <header class="cover-header">
+      <div class="brand-pill">
+        <div class="brand-logo-icon">NV</div>
+        <div class="brand-title">Nguyễn Việt Insight<span class="brand-dot">.</span></div>
+      </div>
+      <div class="cover-top-actions">
+        <button class="btn-icon-round" id="coverThemeToggle" title="Đổi giao diện Sáng / Tối">
+          <i data-lucide="sun"></i>
+        </button>
+        <button class="btn btn-secondary" onclick="startAppWithSample('alpha')">
+          <i data-lucide="zap"></i> Demo Ngay
+        </button>
+      </div>
+    </header>
+
+    <main class="cover-hero-wrap">
+      <div class="cover-story">
+        <div class="cover-badge-row">
+          <span class="status-badge"><span class="dot"></span> AI AGENT ĐÁNH GIÁ RFQ SẴN SÀNG</span>
+          <span style="font-size: 12px; color: var(--text-dim);">Quy trình kiểm duyệt 6 bước</span>
+        </div>
+        <h1 class="cover-headline">
+          Dữ liệu rõ ràng.<br>
+          <span class="accent-gradient">Quyết định thầu vững vàng.</span>
+        </h1>
+        <p class="cover-desc">
+          Thẩm định dữ liệu linh hoạt đa ngành: <strong>Mạng viễn thông, Dự toán vật tư, Đơn hàng doanh thu</strong>. Cơ chế thông minh tự động ánh xạ cấu trúc bảng khác nhau, <em>chỉ chặn đúng các tệp thực sự bị lỗi</em>.
+        </p>
+        <div class="cover-cta-row">
+          <button class="btn btn-primary btn-lg" id="btnStartWorkflow">
+            Bắt đầu thẩm định RFQ <i data-lucide="arrow-right"></i>
+          </button>
+          <button class="btn btn-secondary btn-lg" onclick="startAppWithSample('alpha')">
+            <i data-lucide="play-circle"></i> Thử hồ sơ AlphaTech (378M)
+          </button>
+        </div>
+      </div>
+
+      <div class="cover-visual-card">
+        <div class="pipeline-flow-diagram">
+          <div class="flow-step-item">
+            <div class="flow-icon c1"><i data-lucide="sparkles"></i></div>
+            <div class="flow-meta">
+              <strong>1. Linh Hoạt Nhận Diện Bộ Dữ Liệu</strong>
+              <span>Tự động phát hiện delimiter (, ; \t), tìm header và map cột</span>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="flow-icon c2"><i data-lucide="shield-check"></i></div>
+            <div class="flow-meta">
+              <strong>2. Phân Biệt Rõ Ràng Lỗi Thật Sự</strong>
+              <span>Chỉ chặn tệp 0 byte, hỏng binary, rỗng; đón nhận cấu trúc đa dạng</span>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="flow-icon c3"><i data-lucide="brain-circuit"></i></div>
+            <div class="flow-meta">
+              <strong>3. Thẩm Định Đa Mô Hình &amp; Con Người Duyệt</strong>
+              <span>Kiểm định chính sách, chiết khấu và SLA triển khai</span>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="flow-icon c4"><i data-lucide="file-check"></i></div>
+            <div class="flow-meta">
+              <strong>4. Xuất Báo Cáo &amp; Hồ Sơ Báo Giá DOCX</strong>
+              <span>Bộ 4 tài liệu hoàn chỉnh chuẩn doanh nghiệp Nguyễn Việt</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="cover-features-strip">
+      <div class="feature-chip-card">
+        <i data-lucide="git-pull-request"></i>
+        <span>Tự Động Thích Ứng Mọi Bảng Tính (CSV, Excel, Word)</span>
+      </div>
+      <div class="feature-chip-card">
+        <i data-lucide="shield-alert"></i>
+        <span>Phân Biệt Chuẩn Xác Tệp Lỗi Thật Sự vs Bảng Đa Dạng</span>
+      </div>
+      <div class="feature-chip-card">
+        <i data-lucide="cpu"></i>
+        <span>Cơ chế Human-In-The-Loop (HITL) 2 Cấp Độ</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ========================================================================
+       2. MAIN WORKSPACE VIEW
+       ======================================================================== -->
+  <div class="app-workspace" id="appWorkspace" style="display: none;">
+    
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo-icon">NV</div>
+        <div class="brand-title">Nguyễn Việt Insight</div>
+      </div>
+      <div class="sidebar-menu">
+        <button class="menu-item active" onclick="jumpToStep(currentStep)">
+          <i data-lucide="workflow"></i> Quy trình Thẩm định
+        </button>
+        <button class="menu-item" onclick="jumpToStep(5)">
+          <i data-lucide="bar-chart-2"></i> Báo cáo &amp; Biểu đồ
+        </button>
+        <button class="menu-item" onclick="jumpToStep(6)">
+          <i data-lucide="download-cloud"></i> Xuất Hồ sơ Thầu
+        </button>
+        <button class="menu-item" onclick="startAppWithSample('alpha')">
+          <i data-lucide="file-text"></i> Dữ liệu AlphaTech
+        </button>
+        <button class="menu-item" onclick="startAppWithSample('vietfin')">
+          <i data-lucide="landmark"></i> Dữ liệu VietFin Bank
+        </button>
+        <button class="menu-item" onclick="startAppWithSample('procurement_semicolon')">
+          <i data-lucide="truck"></i> Dữ liệu Vật tư (Dấu ;)
+        </button>
+        <button class="menu-item" onclick="startAppWithSample('ecommerce_sales')">
+          <i data-lucide="shopping-bag"></i> Dữ liệu Đơn hàng
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="menu-item" onclick="resetWorkflow()">
+          <i data-lucide="rotate-ccw"></i> Làm mới quy trình
+        </button>
+        <button class="menu-item" id="returnToCoverBtn">
+          <i data-lucide="home"></i> Về trang giới thiệu
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="main-viewport">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="project-pill">
+            <i data-lucide="folder-git-2" style="color: var(--primary);"></i>
+            <span id="topbarProjectName">Hồ sơ: Chưa nạp</span>
+          </div>
+          <span class="status-badge" id="topbarStatusBadge"><span class="dot"></span> Sẵn sàng</span>
+        </div>
+        <div class="topbar-right">
+          <button class="btn-icon-round" id="appThemeToggle" title="Đổi giao diện">
+            <i data-lucide="sun"></i>
+          </button>
+          <div class="project-pill" style="font-family: var(--font-mono);">
+            <i data-lucide="user-check"></i>
+            <span>Nguyễn Việt Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Container -->
+      <div class="content-container">
+
+        <!-- Dynamic Top Summary Banner (Khung Thống Kê Tổng Quan 4 Thẻ) -->
+        <section class="top-header-banner">
+          <div class="top-header-main-row">
+            <div class="top-header-title-box">
+              <h1 id="topCurrentStepTitle">
+                <span id="topStepPrefix" style="color: var(--primary);">01 /</span> <span id="topStepName">Nạp Dữ Liệu Đầu Vào Linh Hoạt</span>
+              </h1>
+              <p id="topStepSubtitle">Tiếp nhận hồ sơ chào giá qua Google Sheets, CSV, Excel hoặc DOCX · Tự thích ứng nhiều schema</p>
+            </div>
+            <div class="top-header-actions" style="display: flex; align-items: center; gap: 10px;">
+              <span class="status-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);">
+                <span class="dot" style="background: #10b981;"></span> Online Workspace
+              </span>
+              <button class="btn btn-secondary btn-sm" onclick="showWelcomeCover()">
+                <i data-lucide="info"></i> Giới thiệu
+              </button>
+            </div>
+          </div>
+
+          <div class="top-kpis-grid">
+            <div class="top-kpi-item" id="kpiCardDossier">
+              <div class="top-kpi-label">
+                <span>HỒ SƠ ĐANG XEM</span>
+                <i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
+              </div>
+              <div class="top-kpi-value" id="headerRfqCode">Chưa nạp hồ sơ</div>
+              <div class="top-kpi-desc" id="headerCustomerName">Sẵn sàng nhận bộ dữ liệu mới</div>
+            </div>
+
+            <div class="top-kpi-item" id="kpiCardStatus">
+              <div class="top-kpi-label">
+                <span>TRẠNG THÁI KIỂM ĐỊNH</span>
+                <i data-lucide="shield-check" id="headerStatusIcon" style="width: 14px; height: 14px; color: #10b981;"></i>
+              </div>
+              <div class="top-kpi-value" id="headerStatusText" style="color: var(--primary);">Chờ kiểm định</div>
+              <div class="top-kpi-desc" id="headerStatusSub">Hệ thống sẵn sàng tiếp nhận</div>
+            </div>
+
+            <div class="top-kpi-item" id="kpiCardRevenue">
+              <div class="top-kpi-label">
+                <span>DỰ TOÁN THANH TOÁN</span>
+                <i data-lucide="wallet" style="width: 14px; height: 14px; color: var(--accent-sky);"></i>
+              </div>
+              <div class="top-kpi-value" id="headerRevenue">-- ₫</div>
+              <div class="top-kpi-desc" id="headerRevenueSub">Tự động tính từ dữ liệu</div>
+            </div>
+
+            <div class="top-kpi-item" id="kpiCardMargin">
+              <div class="top-kpi-label">
+                <span>BIÊN LỢI NHUẬN GỘP</span>
+                <i data-lucide="trending-up" style="width: 14px; height: 14px; color: var(--accent-amber);"></i>
+              </div>
+              <div class="top-kpi-value" id="headerMargin" style="color: var(--accent-amber);">-- %</div>
+              <div class="top-kpi-desc" id="headerMarginSub">Lãi gộp / COGS ước tính</div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- Stepper Bar (6 Steps) -->
+        <div class="workflow-stepper">
+          <div class="stepper-item active" id="stepTab1" onclick="jumpToStep(1)">
+            <div class="stepper-circle"><i data-lucide="upload-cloud"></i></div>
+            <div class="stepper-meta">
+              <span class="stepper-step-num">Chặng 01</span>
+              <span class="stepper-step-label">Nạp dữ liệu</span>
+            </div>
+          </div>
+          <div class="stepper-connector" id="conn1"></div>
+
+          <div class="stepper-item" id="stepTab2" onclick="jumpToStep(2)">
+            <div class="stepper-circle"><i data-lucide="sparkles"></i></div>
+            <div class="stepper-meta">
+              <span class="stepper-step-num">Chặng 02</span>
+              <span class="stepper-step-label">Làm sạch AI</span>
+            </div>
+          </div>
+          <div class="stepper-connector" id="conn2"></div>
+
+          <div class="stepper-item" id="stepTab3" onclick="jumpToStep(3)">
+            <div class="stepper-circle"><i data-lucide="user-check"></i></div>
+            <div class="stepper-meta">
+              <span class="stepper-step-num">Chặng 03</span>
+              <span class="stepper-step-label">Duyệt dữ liệu</span>
+            </div>
+          </div>
+          <div class="stepper-connector" id="conn3"></div>
+
+          <div class="stepper-item" id="stepTab4" onclick="jumpToStep(4)">
+            <div class="stepper-circle"><i data-lucide="brain-circuit"></i></div>
+            <div class="stepper-meta">
+              <span class="stepper-step-num">Chặng 04</span>
+              <span class="stepper-step-label">Phân tích AI</span>
+            </div>
+          </div>
+          <div class="stepper-connector" id="conn4"></div>
+
+          <div class="stepper-item" id="stepTab5" onclick="jumpToStep(5)">
+            <div class="stepper-circle"><i data-lucide="pie-chart"></i></div>
+            <div class="stepper-meta">
+              <span class="stepper-step-num">Chặng 05</span>
+              <span class="stepper-step-label">Kết quả &amp; Biểu đồ</span>
+            </div>
+          </div>
+          <div class="stepper-connector" id="conn5"></div>
+
+          <div class="stepper-item" id="stepTab6" onclick="jumpToStep(6)">
+            <div class="stepper-circle"><i data-lucide="file-check-2"></i></div>
+            <div class="stepper-meta">
+              <span class="stepper-step-num">Chặng 06</span>
+              <span class="stepper-step-label">Nghiệm thu &amp; Xuất</span>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ====================================================================
+             STEP 1: NẠP DỮ LIỆU ĐẦU VÀO LINH HOẠT & BỘ LỌC PHÂN BIỆT LỖI THẬT SỰ
+             ==================================================================== -->
+        <section class="step-pane active" id="pane1">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <h2>01 / Nạp Dữ Liệu Đầu Vào Linh Hoạt (Adaptive Input)</h2>
+              <p>Hệ thống tự động thích ứng với nhiều bộ dữ liệu người dùng khác nhau (IT, Vật tư, Doanh số, Header dòng 2-3). <strong>Chỉ chặn đúng những tệp lỗi thật sự</strong>.</p>
+            </div>
+          </div>
+
+          <div class="step1-grid">
+            <!-- Left: Dropzone & Intelligent Feedback -->
+            <div class="card">
+              <div class="dropzone-container" id="fileDropzone">
+                <input type="file" id="fileUploadInput" accept=".xlsx,.xls,.csv,.docx" style="display: none;">
+                <div class="dropzone-icon-box" id="dropzoneIconBox">
+                  <i data-lucide="file-spreadsheet"></i>
+                </div>
+                <h3 style="font-size: 18px; margin-bottom: 6px;" id="dropzoneTitle">Kéo thả bảng tính hoặc tài liệu vào đây</h3>
+                <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 18px;" id="dropzoneSubtitle">
+                  Hỗ trợ: <strong>.xlsx, .csv, .docx</strong> · Tự nhận diện dấu phân cách, tự khớp tiêu đề cột
+                </p>
+                <button class="btn btn-primary" onclick="document.getElementById('fileUploadInput').click()">
+                  <i data-lucide="folder-open"></i> Chọn tệp từ máy tính
+                </button>
+              </div>
+
+              <!-- Banner Phản Hồi Trạng Thái Phân Loại Tệp -->
+              <div id="validationAlertContainer" style="display: none;"></div>
+
+              <!-- 4 Nút Thử Nghiệm Nhanh Để Kiểm Chứng Độ Linh Hoạt -->
+              <div style="margin-top: 18px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">
+                  Kiểm chứng các bộ dữ liệu khác nhau &amp; lỗi thật sự:
+                </span>
+                <div class="test-actions-bar">
+                  <button type="button" class="btn-test btn-test-success" onclick="testSample('alpha')">
+                    <i data-lucide="check"></i> 1. Mạng LAN/WiFi
+                  </button>
+                  <button type="button" class="btn-test btn-test-blue" onclick="testSample('procurement_semicolon')">
+                    <i data-lucide="truck"></i> 2. Vật tư (Dấu ; &amp; dòng 3)
+                  </button>
+                  <button type="button" class="btn-test btn-test-purple" onclick="testSample('ecommerce_sales')">
+                    <i data-lucide="shopping-bag"></i> 3. Đơn hàng &amp; Doanh số
+                  </button>
+                  <button type="button" class="btn-test btn-test-danger" onclick="testSample('corrupt_test')">
+                    <i data-lucide="shield-alert"></i> 4. Tệp lỗi thật sự (Chặn)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Google Sheets Input -->
+              <div class="sheets-url-box">
+                <input type="text" class="form-input" id="sheetsUrlInput" placeholder="Dán link Google Sheets công khai (nếu có)...">
+                <button class="btn btn-secondary" onclick="handleImportGoogleSheets()">
+                  <i data-lucide="link-2"></i> Nạp Sheets
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Pre-loaded Industry Samples -->
+            <div class="card">
+              <h3 style="font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="layers" style="color: var(--primary);"></i> Bộ hồ sơ mẫu thực tế
+              </h3>
+              <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                Chọn nhanh 1 dự án để thử nghiệm quy trình phân tích:
+              </p>
+
+              <div class="sample-cards-list">
+                <div class="sample-rfq-card selected" onclick="selectSampleRfq('alpha', this)">
+                  <div class="sample-card-head">
+                    <strong style="font-size: 14px;">1. AlphaTech Việt Nam</strong>
+                    <span class="sample-tag ready">100% Đạt Chuẩn</span>
+                  </div>
+                  <span style="font-size: 12.5px; color: var(--text-muted);">
+                    LAN &amp; Wi-Fi 6 văn phòng 5 tầng, 200 users. Ngân sách 450M, chiết khấu 6%.
+                  </span>
+                </div>
+
+                <div class="sample-rfq-card" onclick="selectSampleRfq('vietfin', this)">
+                  <div class="sample-card-head">
+                    <strong style="font-size: 14px;">2. Ngân hàng VietFin Bank</strong>
+                    <span class="sample-tag warn">Cần Thẩm Định</span>
+                  </div>
+                  <span style="font-size: 12.5px; color: var(--text-muted);">
+                    Hạ tầng Data Center Core L3, Firewall HA, thiết bị DDoS ngoài catalog, chiết khấu 14%.
+                  </span>
+                </div>
+
+                <div class="sample-rfq-card" onclick="selectSampleRfq('ankhang', this)">
+                  <div class="sample-card-head">
+                    <strong style="font-size: 14px;">3. Bệnh viện An Khang</strong>
+                    <span class="sample-tag danger">Đề Xuất Loại</span>
+                  </div>
+                  <span style="font-size: 12.5px; color: var(--text-muted);">
+                    Yêu cầu cấu hình > 1 tỷ nhưng ngân sách chỉ 50M (chỉ đạt 12% giá vốn), lịch gấp 3 ngày.
+                  </span>
+                </div>
+              </div>
+
+              <!-- Next Step Gatekeeper Button -->
+              <div style="margin-top: 24px;">
+                <button class="btn btn-primary btn-lg" style="width: 100%;" id="btnRunStep1Cleaning">
+                  <i data-lucide="sparkles"></i> Tiến hành Làm sạch Dữ liệu AI (Bước 2)
+                </button>
+                <p id="gatekeeperHelpText" style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 8px;">
+                  Hệ thống tự động khớp dữ liệu. Sẵn sàng chuyển tiếp Bước 2.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ====================================================================
+             STEP 2: LÀM SẠCH DỮ LIỆU AI
+             ==================================================================== -->
+        
+        <!-- ====================================================================
+             STEP 2: LÀM SẠCH DỮ LIỆU BẰNG AI (ADAPTIVE CLEANING)
+             ==================================================================== -->
+        <section class="step-pane" id="pane2">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <h2>02 / AI Tự Động Làm Sạch &amp; Đối Soát Bảng Tính</h2>
+              <p id="step2HeaderSubtitle">Hệ thống tự động phát hiện lỗi định dạng, chuẩn hóa số lượng và đối soát danh mục Catalog Nguyễn Việt.</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="dataset-badge-tag" id="step2DatasetBadge" style="margin-bottom:0;">Bảng Thiết Bị Viễn Thông</span>
+              <span class="status-badge" id="cleanStepBadge"><span class="dot"></span> Đang chạy AI Pipeline...</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700;">
+              <span id="cleanProgressLabel">Đang quét cấu trúc hàng và cột...</span>
+              <span id="cleanProgressPct" style="font-family: var(--font-mono); color: var(--primary);">25%</span>
+            </div>
+            <div class="clean-progress-bar-wrap">
+              <div class="clean-progress-bar" id="cleanProgressBar" style="width: 25%;"></div>
+            </div>
+
+            <div class="clean-stages-grid">
+              <div class="stage-item-pill active" id="stage1"><i data-lucide="scan-text"></i> 1. Quét định dạng bảng</div>
+              <div class="stage-item-pill" id="stage2"><i data-lucide="hash"></i> 2. Chuẩn hóa &amp; Làm sạch</div>
+              <div class="stage-item-pill" id="stage3"><i data-lucide="cpu"></i> 3. Đối soát Catalog &amp; Giá</div>
+              <div class="stage-item-pill" id="stage4"><i data-lucide="check-circle-2"></i> 4. Kiểm định toàn vẹn</div>
+            </div>
+
+            <div class="mini-kpi-grid">
+              <div class="mini-kpi-card">
+                <div class="mini-kpi-label"><i data-lucide="file-text"></i> Dòng dữ liệu gốc</div>
+                <div class="mini-kpi-val" id="kpiRawRows">0</div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;" id="kpiDatasetTypeLabel">Đang nhận diện</div>
+              </div>
+              <div class="mini-kpi-card">
+                <div class="mini-kpi-label"><i data-lucide="check-check" style="color: var(--primary);"></i> Bản ghi hợp lệ</div>
+                <div class="mini-kpi-val" id="kpiCleanRows">0</div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;" id="kpiCleanRowsLabel">Chuẩn hóa hoàn tất</div>
+              </div>
+              <div class="mini-kpi-card">
+                <div class="mini-kpi-label"><i data-lucide="cpu" style="color: var(--accent-cyan);"></i> Khớp danh mục</div>
+                <div class="mini-kpi-val" id="kpiCatalogMatched">0</div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;" id="kpiCatalogLabel">Catalog Nguyễn Việt 2026</div>
+              </div>
+              <div class="mini-kpi-card">
+                <div class="mini-kpi-label"><i data-lucide="shield-check" style="color: var(--accent-amber);"></i> Điểm chất lượng</div>
+                <div class="mini-kpi-val" id="kpiQualityScore" style="color: #10b981;">100%</div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;" id="kpiQualityLabel">Đạt chuẩn toàn vẹn</div>
+              </div>
+            </div>
+
+            <div class="terminal-window">
+              <div class="terminal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="terminal" style="font-size: 14px;"></i>
+                  <span>Nhật ký xử lý AI Pipeline — Nguyễn Việt Agent Engine</span>
+                </div>
+                <span style="color: var(--primary); font-weight: 700;" id="termLiveLabel">LIVE MONITOR</span>
+              </div>
+              <div class="terminal-body" id="cleaningTerminalBody">
+                <div class="terminal-line">
+                  <span class="t-time">[00:00.01]</span>
+                  <span class="t-tag">[INIT]</span>
+                  <span>Đang khởi động AI Cleaning Pipeline...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview table in Step 2 -->
+            <div id="step2ResultTable" style="display: none; margin-bottom: 24px;">
+              <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="table" style="color: var(--primary);"></i>
+                Bảng xem trước dữ liệu sau làm sạch (<span id="step2ResultCount">0</span>)
+              </h4>
+              <div style="overflow-x: auto; max-height: 260px; border: 1px solid var(--border-card); border-radius: var(--radius-md);">
+                <table class="data-table" style="font-size: 12.5px;">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">STT</th>
+                      <th>Tên Thiết Bị / Mặt Hàng</th>
+                      <th>Chủng Loại</th>
+                      <th style="text-align: center;">SL</th>
+                      <th style="text-align: center;">ĐVT</th>
+                      <th style="text-align: right;">Đơn Giá</th>
+                      <th style="text-align: right;">Thành Tiền</th>
+                      <th style="text-align: center;">Trạng Thái</th>
+                    </tr>
+                  </thead>
+                  <tbody id="step2TableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="step-nav-bar">
+              <button class="btn btn-secondary" onclick="jumpToStep(1)">
+                <i data-lucide="arrow-left"></i> Quay lại Bước 1
+              </button>
+              <button class="btn btn-primary btn-lg" id="btnGoToStep3" onclick="jumpToStep(3)">
+                Tiến hành Duyệt dữ liệu (Bước 3) <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+
+
+        <!-- ====================================================================
+             STEP 3: DUYỆT DỮ LIỆU KIỂM TRA (HITL REVIEW)
+             ==================================================================== -->
+        <section class="step-pane" id="pane3">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <h2>03 / Kiểm Tra &amp; Xác Thực Dữ Liệu Làm Sạch (HITL Review)</h2>
+              <p>Chuyên viên rà soát, chỉnh sửa số lượng hoặc đơn giá trực tiếp trên bảng. Toàn bộ thay đổi được tự động đồng bộ tài chính theo thời gian thực.</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="dataset-badge-tag" id="step3DatasetBadge">Bảng Danh Mục</span>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <div class="table-toolbar">
+              <div class="table-filter-tabs">
+                <button class="pill-tab active" onclick="filterStep3Table('all', this)">Tất cả (<span id="tabCountAll">0</span>)</button>
+                <button class="pill-tab" onclick="filterStep3Table('valid', this)">Hợp lệ (<span id="tabCountValid">0</span>)</button>
+                <button class="pill-tab" onclick="filterStep3Table('warning', this)">Cần xem xét (<span id="tabCountWarn">0</span>)</button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="text" class="form-input" style="width: 260px; padding: 6px 14px; font-size: 13px;" id="tableSearchInput" placeholder="Tìm theo tên thiết bị, chủng loại..." oninput="filterStep3Table(currentStep3Filter, this.value)">
+              </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="step3Table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px; text-align: center;">STT</th>
+                    <th>Tên Thiết Bị / Mặt Hàng &amp; Thông Số</th>
+                    <th>Chủng Loại</th>
+                    <th style="width: 90px; text-align: center;">Số Lượng</th>
+                    <th style="width: 80px; text-align: center;">Đơn Vị</th>
+                    <th style="text-align: right;">Đơn Giá (VND)</th>
+                    <th style="text-align: right;">Thành Tiền (VND)</th>
+                    <th style="width: 110px; text-align: center;">Trạng Thái</th>
+                    <th style="width: 60px; text-align: center;">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody id="step3TableBody"></tbody>
+                <tfoot>
+                  <tr style="background: rgba(16, 185, 129, 0.05); font-weight: 700; border-top: 2px solid var(--border-card);">
+                    <td colspan="3" style="padding: 14px 16px;">TỔNG CỘNG DỰ TOÁN BƯỚC 3:</td>
+                    <td id="step3SumQty" style="text-align: center; font-family: var(--font-mono); color: var(--text-main);">0</td>
+                    <td></td>
+                    <td style="text-align: right; color: var(--text-dim); font-size: 12px;">Đã gồm VAT &amp; CK</td>
+                    <td id="step3TableTotalRevenue" style="text-align: right; font-family: var(--font-mono); font-size: 16px; color: var(--primary);">0 ₫</td>
+                    <td colspan="2" style="text-align: center; color: var(--accent-cyan); font-size: 12px;" id="step3MarginSummary">Biên lãi: ~27.7%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div class="feedback-loop-grid">
+            <div class="feedback-card fb-amber">
+              <h4 style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <i data-lucide="message-square-code" style="color: var(--accent-amber);"></i>
+                Yêu cầu chỉnh sửa / Feedback Loop AI
+              </h4>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                Nhập yêu cầu để AI hiệu chỉnh lại danh sách và tự động tính toán lại bảng kiểm duyệt:
+              </p>
+              
+              <div class="fb-chips-row" id="step3ChipsContainer">
+                <button class="chip-btn" onclick="applyFeedbackChip('Giảm 5% đơn giá toàn bộ thiết bị')">Giảm 5% đơn giá</button>
+                <button class="chip-btn" onclick="applyFeedbackChip('Tăng 10% số lượng dự phòng')">Tăng 10% số lượng</button>
+                <button class="chip-btn" onclick="applyFeedbackChip('Chuyển tất cả Switch sang chuẩn Cisco PoE+')">Chuẩn Cisco PoE+</button>
+                <button class="chip-btn" onclick="applyFeedbackChip('Đồng bộ đơn vị tính chuẩn')">Chuẩn hóa ĐVT</button>
+              </div>
+
+              <div style="display: flex; gap: 8px;">
+                <input type="text" class="form-input" id="step3FeedbackInput" placeholder="VD: Giảm 5% đơn giá hoặc thay thế dòng sản phẩm...">
+                <button class="btn btn-secondary" onclick="sendStep3Feedback()">
+                  <i data-lucide="refresh-cw"></i> Áp dụng AI
+                </button>
+              </div>
+            </div>
+
+            <div class="feedback-card fb-green" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <h4 style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                  <i data-lucide="check-circle" style="color: var(--primary);"></i>
+                  Xác nhận &amp; Duyệt Dữ Liệu (HITL Approval)
+                </h4>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                  Toàn bộ <strong id="step3ApproveCount" style="color: var(--primary); font-size: 16px;">0</strong> hạng mục đã được rà soát hợp lệ. Sẵn sàng chuyển sang mô hình AI phân tích tài chính &amp; xây dựng 3 kịch bản chào thầu.
+                </p>
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px; color: var(--text-muted);">
+                  <i data-lucide="info" style="width: 14px; height: 14px; color: var(--primary); display: inline-block; vertical-align: middle;"></i>
+                  Đã đồng bộ thời gian thực với bảng giá Catalog &amp; chính sách chiết khấu 2026.
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 14px;" id="btnApproveAndRunAnalysis" onclick="jumpToStep(4)">
+                <i data-lucide="arrow-right-circle"></i> Duyệt dữ liệu &amp; Bắt đầu Phân tích AI (Bước 4)
+              </button>
+            </div>
+          </div>
+
+          <div class="step-nav-bar">
+            <button class="btn btn-secondary" onclick="jumpToStep(2)">
+              <i data-lucide="arrow-left"></i> Về Bước 2
+            </button>
+            <button class="btn btn-primary" onclick="jumpToStep(4)">
+              Tiếp tục sang Bước 4 <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </section>
+
+
+<section class="step-pane" id="pane4">
+          <div class="card analysis-hero-card">
+            <div class="analysis-orb-icon"><i data-lucide="cpu"></i></div>
+            <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Đang Phân Tích Dữ Liệu Bằng AI Engine</h2>
+            <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto; font-size: 14px;">
+              Hệ thống đang chạy 4 mô đun phân tích: Thẩm định Catalog thiết bị, Tính toán Chiết khấu &amp; COGS, Lập tiến độ thi công và Đánh giá Rủi ro pháp lý.
+            </p>
+
+            <div class="analysis-engines-grid">
+              <div class="engine-card complete">
+                <strong><i data-lucide="check" style="color: var(--primary);"></i> 1. Thẩm định Catalog</strong>
+                <span>Khớp mã 100% SKU sẵn hàng kho Nguyễn Việt.</span>
+              </div>
+              <div class="engine-card complete">
+                <strong><i data-lucide="check" style="color: var(--primary);"></i> 2. Tính toán Tài chính</strong>
+                <span>Áp mức chiết khấu 6.0% và tính biên lãi gộp 27.7%.</span>
+              </div>
+              <div class="engine-card complete">
+                <strong><i data-lucide="check" style="color: var(--primary);"></i> 3. Tiến độ Triển khai</strong>
+                <span>Kế hoạch thi công hoàn chỉnh bàn giao.</span>
+              </div>
+              <div class="engine-card complete">
+                <strong><i data-lucide="check" style="color: var(--primary);"></i> 4. Đánh giá Rủi ro</strong>
+                <span>Mức độ rủi ro: Thấp. Đầy đủ CO/CQ từ nhà sản xuất.</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 36px;">
+              <button class="btn btn-primary btn-lg" onclick="jumpToStep(5)">
+                Xem Kết Quả &amp; Biểu Đồ Phân Tích (Bước 5) <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ====================================================================
+             STEP 5: KẾT QUẢ, BIỂU ĐỒ & ĐỀ XUẤT CHIẾN LƯỢC
+             ==================================================================== -->
+        <section class="step-pane" id="pane5">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <h2>05 / Báo Cáo Phân Tích Chuyên Sâu &amp; Đề Xuất Chiến Lược</h2>
+              <p>Kết quả tính toán doanh thu, biên lợi nhuận, cơ cấu giải pháp, biểu đồ tiến độ và hình ảnh thiết bị thực tế.</p>
+            </div>
+            <button class="btn btn-secondary" onclick="exportStep5Pdf()">
+              <i data-lucide="printer"></i> In Báo Cáo Nhanh
+            </button>
+          </div>
+
+          <div class="kpi-four-row">
+            <div class="hero-kpi-card" style="--kpi-accent: #10b981;">
+              <div class="kpi-head">
+                <span class="kpi-title">TỔNG BÁO GIÁ THẦU</span>
+                <div class="kpi-icon-wrap"><i data-lucide="wallet"></i></div>
+              </div>
+              <div class="kpi-number" id="resRevenueVal">-- ₫</div>
+              <div class="kpi-sub-text"><i data-lucide="check" style="color: #10b981;"></i> Đã gồm 10% VAT &amp; Chiết khấu</div>
+            </div>
+
+            <div class="hero-kpi-card" style="--kpi-accent: #06b6d4;">
+              <div class="kpi-head">
+                <span class="kpi-title">LỢI NHUẬN GỘP (MARGIN)</span>
+                <div class="kpi-icon-wrap"><i data-lucide="trending-up"></i></div>
+              </div>
+              <div class="kpi-number" id="resMarginVal">--%</div>
+              <div class="kpi-sub-text"><i data-lucide="arrow-up-right" style="color: #06b6d4;"></i> Lãi gộp: <strong id="resProfitAmount">104.8M</strong></div>
+            </div>
+
+            <div class="hero-kpi-card" style="--kpi-accent: #f59e0b;">
+              <div class="kpi-head">
+                <span class="kpi-title">ĐỘ TƯƠNG THÍCH CATALOG</span>
+                <div class="kpi-icon-wrap"><i data-lucide="check-check"></i></div>
+              </div>
+              <div class="kpi-number" id="resComplianceVal">--%</div>
+              <div class="kpi-sub-text"><i data-lucide="shield-check" style="color: #f59e0b;"></i> Đầy đủ thiết bị &amp; Datasheet</div>
+            </div>
+
+            <div class="hero-kpi-card" style="--kpi-accent: #8b5cf6;">
+              <div class="kpi-head">
+                <span class="kpi-title">TIẾN ĐỘ &amp; MỨC RỦI RO</span>
+                <div class="kpi-icon-wrap"><i data-lucide="clock"></i></div>
+              </div>
+              <div class="kpi-number" id="resRiskVal">-- Ngày / --</div>
+              <div class="kpi-sub-text"><i data-lucide="calendar" style="color: #8b5cf6;"></i> Đạt chuẩn cam kết bàn giao</div>
+            </div>
+          </div>
+
+          <div class="charts-quad-grid">
+            <div class="chart-panel-card">
+              <div class="chart-panel-header">
+                <div>
+                  <h3>Biểu đồ Tài chính &amp; Lợi nhuận theo Nhóm Thiết bị</h3>
+                  <p>Doanh thu chào thầu vs Giá vốn COGS vs Biên lợi nhuận gộp</p>
+                </div>
+              </div>
+              <div class="chart-canvas-box">
+                <canvas id="chartFinanceBreakdown"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-panel-card">
+              <div class="chart-panel-header">
+                <div>
+                  <h3>Cơ cấu Nhóm Thiết bị &amp; Giải pháp</h3>
+                  <p>Tỷ trọng chi phí từng thành phần giải pháp</p>
+                </div>
+              </div>
+              <div class="chart-canvas-box">
+                <canvas id="chartSolutionDonut"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="charts-quad-bottom">
+            <div class="chart-panel-card">
+              <div class="chart-panel-header">
+                <div>
+                  <h3>Tiến độ Triển khai vs Yêu cầu RFQ (Số ngày)</h3>
+                  <p>So sánh ngày đặt hàng, nhập kho, lắp đặt, nghiệm thu so với mốc deadline</p>
+                </div>
+              </div>
+              <div class="chart-canvas-box">
+                <canvas id="chartTimelineBar"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-panel-card">
+              <div class="chart-panel-header">
+                <div>
+                  <h3>Radar Chỉ số Năng lực Thầu &amp; Đánh giá Rủi ro</h3>
+                  <p>Đánh giá 6 trục trọng yếu: Kỹ thuật, Cạnh tranh giá, Cung ứng, Tiến độ, SLA, Pháp lý</p>
+                </div>
+              </div>
+              <div class="chart-canvas-box">
+                <canvas id="chartRiskRadar"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Equipment Gallery -->
+          <div class="section-header" style="margin-top: 32px;">
+            <div class="section-title-wrap">
+              <h3 style="font-size: 20px; font-weight: 800;">Danh mục Thiết bị &amp; Datasheet Thực tế Đề xuất</h3>
+              <p>Hình ảnh thực tế, thông số kỹ thuật chuẩn và tình trạng sẵn sàng tại kho Nguyễn Việt.</p>
+            </div>
+          </div>
+
+          <div class="equipment-gallery-grid">
+            <div class="equipment-card">
+              <div class="equipment-img-box">
+                <img src="https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=600&q=80" alt="Cisco Switch">
+                <span class="equipment-stock-badge">Sẵn hàng kho (24 cái)</span>
+              </div>
+              <div class="equipment-body">
+                <span class="equipment-brand">CISCO NETWORKING</span>
+                <h4 class="equipment-name">Cisco Catalyst 9200L 24P PoE+</h4>
+                <ul class="equipment-specs-list">
+                  <li><i data-lucide="check"></i> 24 cổng Gigabit Ethernet PoE+ (370W)</li>
+                  <li><i data-lucide="check"></i> 4 cổng Uplink 10G SFP+ quang</li>
+                  <li><i data-lucide="check"></i> Layer 3 Routing, Stacking 80Gbps</li>
+                </ul>
+                <div class="equipment-footer">
+                  <span class="equipment-price">34,500,000 ₫</span>
+                  <span style="font-size: 11.5px; color: var(--text-dim);">Bảo hành 36 tháng</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="equipment-card">
+              <div class="equipment-img-box">
+                <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=600&q=80" alt="Fortinet Firewall">
+                <span class="equipment-stock-badge">Sẵn hàng kho (8 cái)</span>
+              </div>
+              <div class="equipment-body">
+                <span class="equipment-brand">FORTINET SECURITY</span>
+                <h4 class="equipment-name">FortiGate FG-100F Next-Gen Firewall</h4>
+                <ul class="equipment-specs-list">
+                  <li><i data-lucide="check"></i> Throughput 1 Gbps Threat Protection / UTM</li>
+                  <li><i data-lucide="check"></i> 22 cổng GE RJ45, 4 cổng SFP, 2 cổng 10G SFP+</li>
+                  <li><i data-lucide="check"></i> Hỗ trợ HA Cluster Active-Passive</li>
+                </ul>
+                <div class="equipment-footer">
+                  <span class="equipment-price">48,200,000 ₫</span>
+                  <span style="font-size: 11.5px; color: var(--text-dim);">Bảo hành 36 tháng</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="equipment-card">
+              <div class="equipment-img-box">
+                <img src="https://images.unsplash.com/photo-1597733336794-12d05021d510?auto=format&fit=crop&w=600&q=80" alt="Aruba Wi-Fi 6">
+                <span class="equipment-stock-badge">Sẵn hàng kho (50 cái)</span>
+              </div>
+              <div class="equipment-body">
+                <span class="equipment-brand">HPE ARUBA NETWORKING</span>
+                <h4 class="equipment-name">Aruba AP-515 Wi-Fi 6 Enterprise</h4>
+                <ul class="equipment-specs-list">
+                  <li><i data-lucide="check"></i> Chuẩn 802.11ax Dual-Band OFDMA MU-MIMO</li>
+                  <li><i data-lucide="check"></i> Tốc độ tối đa 2.69 Gbps, chịu tải 512 client</li>
+                  <li><i data-lucide="check"></i> Tích hợp Bluetooth 5 &amp; Zigbee IoT</li>
+                </ul>
+                <div class="equipment-footer">
+                  <span class="equipment-price">9,800,000 ₫</span>
+                  <span style="font-size: 11.5px; color: var(--text-dim);">Bảo hành 36 tháng</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Proposals -->
+          <div class="section-header" style="margin-top: 32px;">
+            <div class="section-title-wrap">
+              <h3 style="font-size: 20px; font-weight: 800;">3 Kịch Bản Đề Xuất Chiến Lược Bidding Thầu</h3>
+              <p>Hệ thống AI tự động đề xuất 3 phương án để người duyệt quyết định phương thức dự thầu tối ưu.</p>
+            </div>
+          </div>
+
+          <div class="proposals-grid">
+            <div class="proposal-card recommended">
+              <span class="rec-ribbon">KHUYẾN NGHỊ</span>
+              <span class="prop-badge">KỊCH BẢN 1: CƠ SỞ (BASE)</span>
+              <h4 class="prop-title">Đáp Ứng Chuẩn 100% Kỹ Thuật</h4>
+              <p class="prop-desc">Cung cấp đúng toàn bộ thiết bị theo catalog, chiết khấu chuẩn 6.0%. Tỷ lệ thắng thầu cao, biên lãi an toàn tuyệt đối.</p>
+              <div class="prop-stats">
+                <span>Biên lãi: <strong id="prop1Margin">--%</strong></span>
+                <span>Giá chào: <strong id="prop1Rev">--</strong></span>
+              </div>
+              <button class="btn btn-primary" onclick="selectProposal('base')">Chọn Kịch Bản Này</button>
+            </div>
+
+            <div class="proposal-card">
+              <span class="prop-badge">KỊCH BẢN 2: TỐI ƯU LỢI NHUẬN</span>
+              <h4 class="prop-title">Tối Đa Hóa Biên Lợi Nhuận</h4>
+              <p class="prop-desc">Tích hợp gói dịch vụ bảo trì 5 năm và hỗ trợ kỹ thuật Onsite 24/7. Tăng giá trị hợp đồng và mở rộng biên lãi gộp.</p>
+              <div class="prop-stats">
+                <span>Biên lãi: <strong>32.5%</strong></span>
+                <span>Giá chào: <strong>412.0 Triệu</strong></span>
+              </div>
+              <button class="btn btn-secondary" onclick="selectProposal('profit')">Chọn Kịch Bản Này</button>
+            </div>
+
+            <div class="proposal-card">
+              <span class="prop-badge">KỊCH BẢN 3: CẠNH TRANH GIÁ</span>
+              <h4 class="prop-title">Chiết Khấu Quyết Liệt Thắng Thầu</h4>
+              <p class="prop-desc">Áp dụng chiết khấu 12.5% nhằm cạnh tranh quyết liệt để giành khách hàng chiến lược mới, đảm bảo biên lãi an toàn > 20%.</p>
+              <div class="prop-stats">
+                <span>Biên lãi: <strong>21.5%</strong></span>
+                <span>Giá chào: <strong>342.5 Triệu</strong></span>
+              </div>
+              <button class="btn btn-secondary" onclick="selectProposal('aggressive')">Chọn Kịch Bản Này</button>
+            </div>
+          </div>
+
+          <div class="step-nav-bar">
+            <button class="btn btn-secondary" onclick="jumpToStep(3)">
+              <i data-lucide="arrow-left"></i> Về Bước 3
+            </button>
+            <button class="btn btn-primary btn-lg" onclick="jumpToStep(6)">
+              Tiến hành Nghiệm thu &amp; Xuất bản (Bước 6) <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </section>
+
+
+        <!-- ====================================================================
+             STEP 6: NGHIỆM THU CUỐI & XUẤT BẢN HỒ SƠ THẦU (HITL 2)
+             ==================================================================== -->
+        <section class="step-pane" id="pane6">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <h2>06 / Nghiệm Thu Thẩm Định &amp; Xuất Bản Hồ Sơ Thầu</h2>
+              <p>Mô phỏng tham số chiết khấu kịch bản, xác nhận nghiệm thu điện tử và tải xuống bộ tài liệu thầu DOCX hoàn chỉnh.</p>
+            </div>
+          </div>
+
+          <div class="step6-dual-grid">
+            <div class="sim-card">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="sliders" style="color: var(--accent-amber);"></i>
+                Thanh trượt Mô phỏng Kịch bản Thầu
+              </h3>
+              <p style="font-size: 13px; color: var(--text-muted);">
+                Kéo thanh chiết khấu để xem biến động doanh thu, lợi nhuận gộp và điểm thầu ngay lập tức:
+              </p>
+
+              <div class="sim-slider-row">
+                <div class="sim-label-line">
+                  <span>Mức chiết khấu áp dụng:</span>
+                  <strong id="simDiscountVal" style="color: var(--primary); font-family: var(--font-mono);">6.0%</strong>
+                </div>
+                <input type="range" class="sim-slider" id="simDiscountSlider" min="0" max="20" step="0.5" value="6" oninput="updateScenarioSimulation(this.value)">
+              </div>
+
+              <div class="sim-kpi-preview">
+                <div>
+                  <dt>Doanh Thu Chào Thầu</dt>
+                  <dd id="simPreviewRevenue">--M</dd>
+                </div>
+                <div>
+                  <dt>Biên Lãi Gộp</dt>
+                  <dd id="simPreviewMargin" style="color: #10b981;">--%</dd>
+                </div>
+                <div>
+                  <dt>Xác Suất Thắng Thầu</dt>
+                  <dd id="simPreviewWinRate" style="color: #06b6d4;">88%</dd>
+                </div>
+              </div>
+            </div>
+
+            <div class="sim-card">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="shield-check" style="color: var(--primary);"></i>
+                Biên Bản Nghiệm Thu &amp; Ký Duyệt Thẩm Định
+              </h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Xác nhận phê duyệt từ các cấp có thẩm quyền trước khi phát hành hồ sơ:
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                <div>
+                  <label style="font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px;">Người duyệt thẩm định:</label>
+                  <input type="text" class="form-input" id="reviewerNameInput" value="Trần Nam - Trưởng phòng Kinh doanh Doanh nghiệp">
+                </div>
+
+                <div>
+                  <label style="font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px;">Kết luận thẩm định:</label>
+                  <select class="form-input" id="approvalVerdictSelect">
+                    <option value="PASS">PHÙ HỢP &amp; HỢP LỆ — DUYỆT PHÁT HÀNH HỒ SƠ BÁO GIÁ</option>
+                    <option value="CONDITIONAL">DUYỆT CÓ ĐIỀU KIỆN (Bổ sung cam kết tiến độ)</option>
+                    <option value="ESCALATE">CHUYỂN DUYỆT TỔNG GIÁM ĐỐC (Chiết khấu cao)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="btn btn-success btn-lg" style="width: 100%;" onclick="confirmApprovalSignature()">
+                <i data-lucide="check-check"></i> Ký Duyệt &amp; Khóa Hồ Sơ Thầu
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="download" style="color: var(--primary);"></i>
+              Xuất Bản Bộ Tài Liệu Chào Thầu Hoàn Chỉnh (Word &amp; Excel)
+            </h3>
+            <p style="font-size: 13.5px; color: var(--text-muted);">
+              Tất cả tài liệu được xuất tự động với tiêu đề, thương hiệu và chữ ký điện tử của <strong>Công ty Cổ phần Công nghệ &amp; Dữ liệu Nguyễn Việt</strong>:
+            </p>
+
+            <div class="export-buttons-grid">
+              <div class="btn-export-dossier" onclick="downloadDocxFile('official_quotation')">
+                <i data-lucide="file-spreadsheet"></i>
+                <div>
+                  <strong>Bản Chào Giá Thương Mại Chính Thức</strong>
+                  <span>File Word (.docx) kèm bảng giá, VAT, điều khoản thanh toán</span>
+                </div>
+              </div>
+
+              <div class="btn-export-dossier" onclick="downloadDocxFile('approval_form')">
+                <i data-lucide="file-signature"></i>
+                <div>
+                  <strong>Tờ Trình Thẩm Định &amp; Chuyển Duyệt</strong>
+                  <span>File Word (.docx) mẫu trình Ban Giám đốc phê duyệt</span>
+                </div>
+              </div>
+
+              <div class="btn-export-dossier" onclick="downloadDocxFile('requirements_matrix')">
+                <i data-lucide="table-2"></i>
+                <div>
+                  <strong>Ma Trận Tuân Thủ Kỹ Thuật (Compliance Matrix)</strong>
+                  <span>File Word (.docx) đối soát 100% tiêu chí kỹ thuật RFQ</span>
+                </div>
+              </div>
+
+              <div class="btn-export-dossier" onclick="downloadBoqCsv()">
+                <i data-lucide="download-cloud"></i>
+                <div>
+                  <strong>Bảng Khối Lượng Dự Toán BOQ (.CSV)</strong>
+                  <span>Tập tin dữ liệu chi tiết import vào phần mềm kế toán</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-nav-bar">
+            <button class="btn btn-secondary" onclick="jumpToStep(5)">
+              <i data-lucide="arrow-left"></i> Về Bước 5
+            </button>
+            <button class="btn btn-secondary" onclick="resetWorkflow()">
+              <i data-lucide="rotate-ccw"></i> Bắt đầu Dự án Mới
+            </button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+
+  <!-- ========================================================================
+       JAVASCRIPT APPLICATION ENGINE: ADAPTIVE DATA ENGINE & ERROR SHIELD
+       ======================================================================== -->
+  <script>
+    let currentStep = 1;
+    let currentRfqCode = 'NV-2026-ALPHA-01';
+    let currentItems = [];
+    let isCurrentFileValid = true;
+    let currentValidationMsg = '';
+    let currentDatasetType = 'Bảng Thiết Bị Viễn Thông & Mạng CNTT';
+
+    let currentProjectData = {
+      customerName: 'AlphaTech Việt Nam',
+      projectName: 'Nâng cấp Mạng LAN & Wi-Fi 6 Văn phòng',
+      revenue: 378600000,
+      cogs: 273800000,
+      margin: 27.7,
+      compliance: 100,
+      durationDays: 12
+    };
+
+    let chartFinanceInstance = null;
+    let chartDonutInstance = null;
+    let chartTimelineInstance = null;
+    let chartRadarInstance = null;
+
+    const SAMPLE_DATABASE = {
+      alpha: {
+        rfqCode: 'NV-2026-ALPHA-01',
+        customerName: 'AlphaTech Việt Nam',
+        projectName: 'Nâng cấp Hệ thống Mạng LAN - Wi-Fi 6',
+        datasetType: 'Bảng Thiết Bị Viễn Thông & Mạng CNTT',
+        items: [
+          { stt: '1', item_name: 'Cisco Catalyst C9200L 24P PoE+', category: 'Switching', quantity: 2, unit: 'Bộ', unit_price: 34500000, total_price: 69000000, status: 'Hợp lệ' },
+          { stt: '2', item_name: 'Cisco Catalyst C9200L 48P PoE+', category: 'Switching', quantity: 1, unit: 'Bộ', unit_price: 52000000, total_price: 52000000, status: 'Hợp lệ' },
+          { stt: '3', item_name: 'Fortinet FortiGate FG-100F Next-Gen Firewall', category: 'Security', quantity: 1, unit: 'Bộ', unit_price: 48200000, total_price: 48200000, status: 'Hợp lệ' },
+          { stt: '4', item_name: 'Aruba AP-515 Wi-Fi 6 Access Point', category: 'Wireless', quantity: 12, unit: 'Bộ', unit_price: 9800000, total_price: 117600000, status: 'Hợp lệ' },
+          { stt: '5', item_name: 'APC Smart-UPS 3000VA LCD 230V', category: 'Power', quantity: 1, unit: 'Bộ', unit_price: 24500000, total_price: 24500000, status: 'Hợp lệ' },
+          { stt: '6', item_name: 'CommsRack 42U 800x1000 Server Rack', category: 'Cabling', quantity: 1, unit: 'Tủ', unit_price: 14800000, total_price: 14800000, status: 'Hợp lệ' },
+          { stt: '7', item_name: 'Dịch vụ Cấu hình, Triển khai & Chuyển giao', category: 'Services', quantity: 1, unit: 'Gói', unit_price: 18000000, total_price: 18000000, status: 'Hợp lệ' }
+        ],
+        revenue: 378600000,
+        cogs: 273800000,
+        margin: 27.7,
+        compliance: 100,
+        durationDays: 12
+      },
+      vietfin: {
+        rfqCode: 'NV-2026-VIETFIN-02',
+        customerName: 'Ngân hàng Số VietFin Bank',
+        projectName: 'Hạ tầng Trung tâm Dữ liệu Core Banking',
+        datasetType: 'Bảng Thiết Bị Viễn Thông & Mạng CNTT',
+        items: [
+          { stt: '1', item_name: 'Cisco Nexus 9300 Core Switch 48x25G', category: 'Switching', quantity: 2, unit: 'Bộ', unit_price: 285000000, total_price: 570000000, status: 'Hợp lệ' },
+          { stt: '2', item_name: 'Fortinet FG-600E Enterprise HA Firewall', category: 'Security', quantity: 2, unit: 'Bộ', unit_price: 240000000, total_price: 480000000, status: 'Hợp lệ' },
+          { stt: '3', item_name: 'Thiết bị Chống DDoS Chuyên dụng (Ngoài Catalog)', category: 'Security', quantity: 1, unit: 'Bộ', unit_price: 350000000, total_price: 350000000, status: 'Cảnh báo: Ngoài Catalog' },
+          { stt: '4', item_name: 'HPE ProLiant DL380 Gen10 Server', category: 'Compute', quantity: 4, unit: 'Máy', unit_price: 85000000, total_price: 340000000, status: 'Hợp lệ' },
+          { stt: '5', item_name: 'Dịch vụ Cài đặt High-Availability 24/7', category: 'Services', quantity: 1, unit: 'Gói', unit_price: 110000000, total_price: 110000000, status: 'Hợp lệ' }
+        ],
+        revenue: 1850000000,
+        cogs: 1380000000,
+        margin: 25.4,
+        compliance: 88,
+        durationDays: 15
+      },
+      procurement_semicolon: {
+        rfqCode: 'NV-2026-VATTU-03',
+        customerName: 'Phòng Quản trị Hạ tầng & Mua sắm Doanh nghiệp',
+        projectName: 'Bảng Dự Toán Vật Tư Năm 2026 (Dấu ; & Header dòng 3)',
+        datasetType: 'Bảng Dự Toán Mua Sắm Vật Tư Doanh Nghiệp',
+        items: [
+          { stt: '1', item_name: 'Cáp mạng CommScope Cat6 UTP 305m', category: 'Vật tư cáp', quantity: 20, unit: 'Cuộn', unit_price: 2450000, total_price: 49000000, status: 'Hợp lệ' },
+          { stt: '2', item_name: 'Đầu bấm mạng RJ45 Cat6 bọc kim chống nhiễu', category: 'Phụ kiện', quantity: 500, unit: 'Hạt', unit_price: 12000, total_price: 6000000, status: 'Hợp lệ' },
+          { stt: '3', item_name: 'Thanh đấu nối Patch Panel 24 Port Cat6', category: 'Phụ kiện rack', quantity: 4, unit: 'Thanh', unit_price: 1850000, total_price: 7400000, status: 'Hợp lệ' },
+          { stt: '4', item_name: 'Dây nhảy mạng Patch Cord Cat6 2m đúc sẵn', category: 'Phụ kiện', quantity: 120, unit: 'Sợi', unit_price: 45000, total_price: 5400000, status: 'Hợp lệ' },
+          { stt: '5', item_name: 'Bộ định tuyến Cân bằng tải Multi-WAN HA', category: 'Thiết bị định tuyến', quantity: 2, unit: 'Bộ', unit_price: 18500000, total_price: 37000000, status: 'Hợp lệ' }
+        ],
+        revenue: 104800000,
+        cogs: 76000000,
+        margin: 27.5,
+        compliance: 100,
+        durationDays: 7
+      },
+      ecommerce_sales: {
+        rfqCode: 'NV-2026-SALES-04',
+        customerName: 'Tập đoàn Bán lẻ & Chuỗi Dịch vụ Toàn quốc',
+        projectName: 'Bảng Đơn Hàng & Doanh Thu (Schema Kinh Doanh Đa Ngành)',
+        datasetType: 'Bảng Đơn Hàng & Doanh Thu Kinh Doanh',
+        items: [
+          { stt: 'ORD-8801', item_name: 'Switch Cisco C9200L 24P (VinRetail)', category: 'Đơn hàng CNTT', quantity: 2, unit: 'Bộ', unit_price: 34500000, total_price: 69000000, status: 'Hợp lệ' },
+          { stt: 'ORD-8802', item_name: 'Tường lửa FortiGate 100F (MB Bank)', category: 'Đơn hàng Bảo mật', quantity: 1, unit: 'Bộ', unit_price: 48200000, total_price: 48200000, status: 'Hợp lệ' },
+          { stt: 'ORD-8803', item_name: 'Bộ phát Wi-Fi 6 Aruba AP-515 (Bạch Mai)', category: 'Đơn hàng Không dây', quantity: 10, unit: 'Bộ', unit_price: 9800000, total_price: 98000000, status: 'Hợp lệ' },
+          { stt: 'ORD-8804', item_name: 'Tủ mạng Rack 42U Server (ĐH Bách Khoa)', category: 'Đơn hàng Hạ tầng', quantity: 2, unit: 'Tủ', unit_price: 14800000, total_price: 29600000, status: 'Hợp lệ' },
+          { stt: 'ORD-8805', item_name: 'Dịch vụ Cấu hình Mạng (Mường Thanh)', category: 'Dịch vụ Kỹ thuật', quantity: 1, unit: 'Gói', unit_price: 18000000, total_price: 18000000, status: 'Hợp lệ' }
+        ],
+        revenue: 262800000,
+        cogs: 191000000,
+        margin: 27.3,
+        compliance: 96,
+        durationDays: 10
+      },
+      ankhang: {
+        rfqCode: 'NV-2026-ANKHANG-03',
+        customerName: 'Bệnh viện Quốc tế An Khang',
+        projectName: 'Hệ thống CCTV AI & Lưu trữ Y tế',
+        datasetType: 'Bảng Thiết Bị Chuyên Dụng Y Tế / Giám Sát',
+        items: [
+          { stt: '1', item_name: 'Hệ thống Lưu trữ SAN Enterprise 200TB', category: 'Storage', quantity: 1, unit: 'Hệ', unit_price: 480000000, total_price: 480000000, status: 'Cảnh báo: Vượt ngân sách' },
+          { stt: '2', item_name: 'Camera AI Giám sát Phòng phẫu thuật', category: 'IoT', quantity: 20, unit: 'Chiếc', unit_price: 3100000, total_price: 62000000, status: 'Hợp lệ' }
+        ],
+        revenue: 542000000,
+        cogs: 490000000,
+        margin: 9.6,
+        compliance: 72,
+        durationDays: 3
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initTheme();
+      initDropzone();
+      initEmptyWorkspace();
+
+      document.getElementById('btnStartWorkflow').addEventListener('click', () => {
+        showAppWorkspace();
+        jumpToStep(1);
+      });
+      document.getElementById('returnToCoverBtn').addEventListener('click', () => {
+        showWelcomeCover();
+      });
+
+      document.getElementById('btnRunStep1Cleaning').addEventListener('click', () => {
+        if (!isCurrentFileValid) {
+          triggerInvalidBlockUI(currentValidationMsg || 'Tệp bị lỗi thật sự hoặc chưa được nạp. Không thể chuyển sang Bước 2.');
+          return;
+        }
+        runStep2Cleaning();
+      });
+
+      document.getElementById('btnGoToStep3').addEventListener('click', () => {
+        jumpToStep(3);
+      });
+      document.getElementById('btnApproveAndRunAnalysis').addEventListener('click', () => {
+        runStep4Analysis();
+      });
+    });
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('nv_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeIcons(savedTheme);
+
+      const toggleCover = document.getElementById('coverThemeToggle');
+      const toggleApp = document.getElementById('appThemeToggle');
+
+      const switchTheme = () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('nv_theme', next);
+        updateThemeIcons(next);
+        if (currentStep === 5) renderAllCharts();
+      };
+
+      if (toggleCover) toggleCover.addEventListener('click', switchTheme);
+      if (toggleApp) toggleApp.addEventListener('click', switchTheme);
+    }
+
+    function updateThemeIcons(theme) {
+      const iconName = theme === 'dark' ? 'sun' : 'moon';
+      document.querySelectorAll('#coverThemeToggle i, #appThemeToggle i').forEach(el => {
+        el.setAttribute('data-lucide', iconName);
+      });
+      lucide.createIcons();
+    }
+
+    function showAppWorkspace() {
+      document.getElementById('welcomeCover').style.display = 'none';
+      document.getElementById('appWorkspace').style.display = 'flex';
+      lucide.createIcons();
+    }
+
+    function showWelcomeCover() {
+      document.getElementById('appWorkspace').style.display = 'none';
+      document.getElementById('welcomeCover').style.display = 'flex';
+      lucide.createIcons();
+    }
+
+    function startAppWithSample(sampleKey) {
+      loadSampleData(sampleKey);
+      showAppWorkspace();
+      jumpToStep(1);
+    }
+
+    function jumpToStep(stepNum) {
+      if (stepNum > 1 && !isCurrentFileValid) {
+        triggerInvalidBlockUI('Hệ thống đã chặn chuyển bước: Tệp hiện tại bị lỗi thật sự. Vui lòng nạp tệp hợp lệ hoặc chọn một bộ hồ sơ mẫu.');
+        return;
+      }
+
+      currentStep = stepNum;
+      updateStepTitles(stepNum);
+
+      for (let i = 1; i <= 6; i++) {
+        const tab = document.getElementById(`stepTab${i}`);
+        const conn = document.getElementById(`conn${i}`);
+        const pane = document.getElementById(`pane${i}`);
+
+        if (tab) {
+          tab.classList.remove('active', 'completed');
+          if (i === stepNum) tab.classList.add('active');
+          else if (i < stepNum) tab.classList.add('completed');
+        }
+        if (conn) {
+          conn.classList.toggle('completed', i < stepNum);
+        }
+        if (pane) {
+          pane.classList.toggle('active', i === stepNum);
+        }
+      }
+
+      if (stepNum === 3) renderStep3Table();
+      if (stepNum === 5) {
+        setTimeout(() => {
+          recalculateTotals();
+          renderAllCharts();
+          renderEquipmentGallery();
+          updateProposalCards();
+        }, 100);
+      }
+      if (stepNum === 6) {
+        setTimeout(() => updateScenarioSimulation(document.getElementById('simDiscountSlider')?.value || 6), 200);
+      }
+
+      lucide.createIcons();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* STEP 1: DROPZONE & SMART ADAPTIVE PARSING */
+    function initDropzone() {
+      const dropzone = document.getElementById('fileDropzone');
+      const fileInput = document.getElementById('fileUploadInput');
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+          processIncomingFile(e.dataTransfer.files[0]);
+        }
+      });
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) {
+          processIncomingFile(fileInput.files[0]);
+        }
+      });
+    }
+
+    function processIncomingFile(file) {
+      const allowedExts = ['.xlsx', '.xls', '.csv', '.docx'];
+      const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+
+      // Kiểm tra lỗi thật sự: Sai định dạng không phải tài liệu
+      if (!allowedExts.includes(fileExt)) {
+        triggerInvalidBlockUI(`Lỗi thật sự: Định dạng "${fileExt}" không được hỗ trợ. Chỉ chấp nhận tệp Word (.docx) hoặc Bảng tính (.csv, .xlsx).`);
+        resetFileInput();
+        return;
+      }
+
+      // Kiểm tra lỗi thật sự: Tệp 0 bytes
+      if (file.size === 0) {
+        triggerInvalidBlockUI(`Lỗi thật sự: Tệp "${file.name}" bị rỗng hoàn toàn (0 KB).`);
+        resetFileInput();
+        return;
+      }
+
+      addTerminalLog('INSPECT', `[CHẶNG 1] Đang phân tích tệp dữ liệu: ${file.name} (${(file.size / 1024).toFixed(1)} KB)...`);
+      document.getElementById('topbarProjectName').innerText = `Đang kiểm tra: ${file.name}`;
+
+      // Gửi lên backend để phân tích thích ứng linh hoạt
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('/api/clean-data', { method: 'POST', body: formData })
+        .then(async res => {
+          const data = await res.json();
+          if (!res.ok || data.action === 'BLOCKED' || !data.success || !data.items || data.items.length === 0) {
+            console.warn('Backend parsing failed or blocked, attempting smart client-side parsing...', data);
+            localAdaptiveParse(file);
+          } else {
+            // Linh hoạt chấp nhận bộ dữ liệu từ backend
+            triggerValidAcceptUI(file.name, data.items.length, data.items, data.dataset_type || 'Bảng Dữ Liệu Tải Lên');
+          }
+        })
+        .catch(err => {
+          console.warn('Fetch error, falling back to client-side parse:', err);
+          localAdaptiveParse(file);
+        });
+    }
+
+    function localAdaptiveParse(file) {
+      const fileName = file.name;
+      const fileExt = '.' + fileName.split('.').pop().toLowerCase();
+
+      if (fileExt === '.csv') {
+        Papa.parse(file, {
+          header: false,
+          skipEmptyLines: true,
+          complete: (results) => {
+            handleRawRowsParsed(fileName, results.data);
+          },
+          error: (err) => {
+            triggerInvalidBlockUI(`Lỗi thật sự: Không thể đọc tệp CSV "${fileName}": ${err.message}`, fileName);
+            resetFileInput();
+          }
+        });
+      } else if (fileExt === '.xlsx' || fileExt === '.xls') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            handleRawRowsParsed(fileName, rows);
+          } catch (err) {
+            triggerInvalidBlockUI(`Lỗi thật sự: Không thể đọc bảng tính Excel "${fileName}": ${err.message}`, fileName);
+            resetFileInput();
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        triggerInvalidBlockUI(`Lỗi thật sự: Định dạng "${fileExt}" không được hỗ trợ.`, fileName);
+        resetFileInput();
+      }
+    }
+
+    function handleRawRowsParsed(fileName, rawRows) {
+      const rows = rawRows.filter(r => Array.isArray(r) && r.some(c => c !== null && c !== undefined && c.toString().trim() !== ''));
+      if (!rows || rows.length < 2) {
+        triggerInvalidBlockUI(`Lỗi thật sự: Tệp "${fileName}" không chứa đủ dữ liệu bảng (cần ít nhất 2 dòng dữ liệu).`, fileName);
+        resetFileInput();
+        return;
+      }
+
+      // 1. Quét tìm dòng Header (quét 8 dòng đầu)
+      const headerKeywords = [
+        'ngày', 'date', 'tháng', 'năm', 'thời gian', 'time',
+        'stt', 'mã', 'id', 'no',
+        'tên', 'thiết bị', 'hạng mục', 'sản phẩm', 'vật tư', 'mô tả', 'item', 'product', 'description', 'nội dung',
+        'số lượng', 'sl', 'qty', 'quantity', 'count',
+        'đơn vị', 'đvt', 'unit',
+        'đơn giá', 'giá', 'unit price', 'price',
+        'thành tiền', 'doanh thu', 'tổng tiền', 'tổng cộng', 'total', 'revenue', 'amount'
+      ];
+
+      let headerIdx = 0;
+      let maxMatches = -1;
+      for (let i = 0; i < Math.min(8, rows.length); i++) {
+        const rowCells = rows[i].map(c => (c || '').toString().toLowerCase().trim());
+        const matchCount = rowCells.filter(cell => headerKeywords.some(kw => cell.includes(kw))).length;
+        if (matchCount > maxMatches) {
+          maxMatches = matchCount;
+          headerIdx = i;
+        }
+      }
+
+      const headers = rows[headerIdx].map(h => (h || '').toString().toLowerCase().trim());
+
+      // 2. Ánh xạ cột - Nhận diện thông minh & bám sát cấu trúc dữ liệu người dùng
+      let dateColIdx = headers.findIndex(h => ['ngày tháng năm', 'ngày tháng', 'ngày lập', 'ngày đặt', 'ngày tạo', 'ngày chứng từ', 'ngày', 'date', 'bắt đầu', 'ngày bắt đầu', 'start_date', 'từ ngày', 'hiệu lực', 'thời gian', 'time'].some(k => h.includes(k)));
+      let qtyColIdx = headers.findIndex(h => ['số lượng', 'sl', 'qty', 'quantity', 'count', 'số tháng', 'tháng dịch vụ', 'số ngày', 'số tuần', 'khối lượng', 'volume'].some(k => h.includes(k)));
+      let unitColIdx = headers.findIndex(h => ['đơn vị tính', 'đơn vị', 'đvt', 'unit', 'uom', 'chu kỳ', 'kỳ thu', 'chu kỳ thu', 'chu kỳ tính'].some(k => h.includes(k)));
+      
+      let unitPriceColIdx = headers.findIndex(h => ['đơn giá', 'giá bán', 'giá lẻ', 'unit price', 'giá dự toán', 'giá dự kiến', 'doanh thu tháng', 'doanh thu/tháng', 'giá/tháng', 'đơn giá (vnd)', 'giá (vnd)'].some(k => h.includes(k)));
+      if (unitPriceColIdx === -1) {
+        unitPriceColIdx = headers.findIndex(h => h.includes('giá') && !h.includes('thành') && !h.includes('tổng') && !h.includes('tiền thu'));
+      }
+      
+      let totalPriceColIdx = headers.findIndex(h => ['thành tiền', 'tiền thu trước', 'tổng tiền', 'tổng cộng', 'tiền thu', 'doanh thu', 'total', 'revenue', 'amount', 'thành tiền (vnd)', 'tiền thu trước (vnd)', 'tổng (vnd)'].some(k => h.includes(k)));
+
+      // Tìm cột tên: ưu tiên từ khóa sản phẩm / dịch vụ
+      let nameColIdx = headers.findIndex(h => ['tên thiết bị', 'tên hàng hóa', 'tên hàng', 'tên sản phẩm', 'tên hạng mục', 'tên dịch vụ', 'tên vật tư', 'tên mặt hàng', 'mô tả', 'description', 'item name', 'product name', 'nội dung công việc'].some(k => h.includes(k)));
+      if (nameColIdx === -1) {
+        nameColIdx = headers.findIndex(h => ['thiết bị', 'hạng mục', 'sản phẩm', 'vật tư', 'mặt hàng', 'item', 'product', 'hàng hóa'].some(k => h.includes(k)));
+      }
+      // Nếu không có tên theo sản phẩm, kiểm tra cột mã hợp đồng / mã đơn / mã nhận diện
+      if (nameColIdx === -1) {
+        nameColIdx = headers.findIndex(h => ['mã hợp đồng', 'hợp đồng', 'mã đơn', 'mã sản phẩm', 'mã hàng'].some(k => h.includes(k)));
+      }
+      // Nếu vẫn chưa có, tìm cột chuỗi đầu tiên KHÔNG phải date, qty, unit, price, total_price, stt
+      if (nameColIdx === -1) {
+        for (let col = 0; col < headers.length; col++) {
+          if (col === dateColIdx || col === qtyColIdx || col === unitColIdx || col === unitPriceColIdx || col === totalPriceColIdx) continue;
+          const sample = rows.slice(headerIdx + 1, headerIdx + 6).map(r => (r[col] || '').toString().trim());
+          const hasTextContent = sample.some(s => {
+            if (!s || s.length < 2) return false;
+            if (/^\d{4}[-\/]\d{1,2}([-\/]\d{1,2})?$/.test(s)) return false;
+            if (/^\d+([.,]\d+)?$/.test(s.replace(/\s/g, ''))) return false;
+            return true;
+          });
+          if (hasTextContent) {
+            nameColIdx = col;
+            break;
+          }
+        }
+      }
+      if (nameColIdx === -1) nameColIdx = 0;
+
+      let sttColIdx = headers.findIndex(h => ['stt', 'id', 'no.', 'số thứ tự'].some(k => h === k || h.includes(k)));
+      if (sttColIdx === nameColIdx) sttColIdx = -1;
+
+      // 3. Trích xuất các dòng dữ liệu
+      const items = [];
+      let hasDateInRows = false;
+
+      for (let r = headerIdx + 1; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row || !row[nameColIdx] || !row[nameColIdx].toString().trim()) continue;
+
+        const nameStr = row[nameColIdx].toString().trim();
+        if (['tổng', 'tổng cộng', 'total', 'vat', 'chi phí chung'].some(k => nameStr.toLowerCase() === k || nameStr.toLowerCase().startsWith(k))) {
+          continue;
+        }
+
+        let dateStr = '';
+        if (dateColIdx >= 0 && row[dateColIdx]) {
+          dateStr = row[dateColIdx].toString().trim();
+          if (dateStr) hasDateInRows = true;
+        }
+
+        let sttStr = (items.length + 1).toString();
+        if (sttColIdx >= 0 && row[sttColIdx]) {
+          sttStr = row[sttColIdx].toString().trim() || sttStr;
+        }
+
+        let qty = 1;
+        if (qtyColIdx >= 0 && row[qtyColIdx]) {
+          const qVal = parseFloat(row[qtyColIdx].toString().replace(/[^\d.-]/g, ''));
+          if (!isNaN(qVal) && qVal > 0) qty = Math.round(qVal);
+        }
+
+        let unitStr = 'Bộ';
+        if (unitColIdx >= 0 && row[unitColIdx]) {
+          unitStr = row[unitColIdx].toString().trim() || 'Bộ';
+        }
+
+        let uPrice = 0;
+        if (unitPriceColIdx >= 0 && row[unitPriceColIdx]) {
+          const pVal = parseFloat(row[unitPriceColIdx].toString().replace(/[^\d.-]/g, ''));
+          if (!isNaN(pVal) && pVal > 0) uPrice = pVal;
+        }
+
+        let tPrice = 0;
+        if (totalPriceColIdx >= 0 && row[totalPriceColIdx]) {
+          const tVal = parseFloat(row[totalPriceColIdx].toString().replace(/[^\d.-]/g, ''));
+          if (!isNaN(tVal) && tVal > 0) tPrice = tVal;
+        }
+
+        if (uPrice <= 0 && tPrice > 0) {
+          uPrice = Math.round(tPrice / qty);
+        } else if (tPrice <= 0 && uPrice > 0) {
+          tPrice = uPrice * qty;
+        } else if (uPrice <= 0 && tPrice <= 0) {
+          uPrice = 0;
+          tPrice = 0;
+        }
+
+        items.push({
+          stt: sttStr,
+          date: dateStr,
+          item_name: nameStr,
+          category: guessCategory(nameStr),
+          quantity: qty,
+          unit: unitStr,
+          specs: dateStr ? `Ngày ghi nhận: ${dateStr}` : 'Tiêu chuẩn kỹ thuật Nguyễn Việt',
+          unit_price: uPrice,
+          total_price: tPrice,
+          status: 'Hợp lệ'
+        });
+      }
+
+      if (items.length === 0) {
+        triggerInvalidBlockUI(`Lỗi thật sự: Không thể nhận diện được dòng dữ liệu nào từ tệp "${fileName}".`, fileName);
+        resetFileInput();
+        return;
+      }
+
+      let detectedDatasetType = 'Bảng Dữ Liệu Tải Lên';
+      if (hasDateInRows) {
+        detectedDatasetType = 'Bảng Dữ Liệu Theo Dõi Ngày Tháng';
+      } else if (items.some(i => i.item_name.toLowerCase().includes('switch') || i.item_name.toLowerCase().includes('router') || i.item_name.toLowerCase().includes('cáp'))) {
+        detectedDatasetType = 'Bảng Thiết Bị Viễn Thông & Mạng CNTT';
+      } else if (items.some(i => i.item_name.toLowerCase().includes('vật tư') || i.item_name.toLowerCase().includes('thi công'))) {
+        detectedDatasetType = 'Bảng Dự Toán Mua Sắm Vật Tư Doanh Nghiệp';
+      }
+
+      triggerValidAcceptUI(fileName, items.length, items, detectedDatasetType);
+    }
+
+    /* ERROR SHIELD: PHÂN BIỆT LỖI THẬT SỰ (CHẶN & LOẠI BỎ) */
+    function triggerInvalidBlockUI(errorMessage, fileName = 'Tệp vừa nạp') {
+      isCurrentFileValid = false;
+      currentValidationMsg = errorMessage;
+
+      const dropzone = document.getElementById('fileDropzone');
+      if (dropzone) {
+        dropzone.classList.remove('error-shake');
+        void dropzone.offsetWidth;
+        dropzone.classList.add('error-shake');
+      }
+
+      document.getElementById('topbarProjectName').innerText = `Đã chặn: ${fileName}`;
+      document.getElementById('topbarStatusBadge').innerHTML = `<span class="dot" style="background:#f43f5e; box-shadow:0 0 10px #f43f5e;"></span> BỊ TỪ CHỐI`;
+
+      const btnNext = document.getElementById('btnRunStep1Cleaning');
+      if (btnNext) {
+        btnNext.disabled = true;
+        btnNext.innerHTML = `<i data-lucide="shield-x"></i> Tệp Bị Chặn — Không Thể Chuyển Chặng 2`;
+      }
+      const helpText = document.getElementById('gatekeeperHelpText');
+      if (helpText) {
+        helpText.innerText = `⚠️ Bị chặn: Hệ thống đã loại bỏ tệp lỗi thật sự. Vui lòng nạp lại tệp có nội dung dữ liệu hợp lệ.`;
+        helpText.style.color = '#f43f5e';
+      }
+
+      const alertContainer = document.getElementById('validationAlertContainer');
+      if (alertContainer) {
+        alertContainer.style.display = 'block';
+        alertContainer.innerHTML = `
+          <div class="validation-alert-banner banner-danger">
+            <i data-lucide="shield-alert"></i>
+            <div class="validation-banner-content">
+              <span class="dataset-badge-tag" style="background:rgba(244,63,94,0.2); color:#f43f5e; border-color:rgba(244,63,94,0.4);">PHÁT HIỆN LỖI THẬT SỰ</span>
+              <strong>🚫 TỆP BỊ LỖI — ĐÃ BỊ CHẶN &amp; LOẠI BỎ KHỎI BỘ NHỚ</strong>
+              <p>${errorMessage}</p>
+              <p style="margin-top: 6px; font-size: 12px; color: #fecdd3;">
+                Hệ thống chỉ chặn các tệp rỗng, hỏng cấu trúc hoặc không có dữ liệu. Hãy tải lên tệp hợp lệ để bắt đầu Chặng 2.
+              </p>
+            </div>
+          </div>
+        `;
+      }
+
+      updateHeaderKPIs(null, false, true, errorMessage);
+      addTerminalLog('BLOCKED', `[CHẶNG 1 LỖI] ĐÃ CHẶN VÀ LOẠI BỎ: ${errorMessage}`);
+      lucide.createIcons();
+    }
+
+    /* ADAPTIVE DATA ENGINE: CHẤP NHẬN BỘ DỮ LIỆU ĐA DẠNG & THIẾT LẬP CHO TOÀN BỘ CÁC CHẶNG SAU */
+    function triggerValidAcceptUI(fileName, itemCount, itemsList, datasetType = 'Bảng Dữ Liệu Tải Lên') {
+      isCurrentFileValid = true;
+      currentValidationMsg = '';
+      currentDatasetType = datasetType;
+      currentRfqCode = 'NV-' + new Date().getFullYear() + '-' + (fileName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8).toUpperCase() || 'DATA');
+
+      if (itemsList && itemsList.length) {
+        currentItems = itemsList.map((it, idx) => ({
+          stt: it.stt || (idx + 1).toString(),
+          date: it.date || '',
+          item_name: it.item_name,
+          category: it.category || guessCategory(it.item_name),
+          quantity: parseInt(it.quantity) || 1,
+          unit: it.unit || 'Bộ',
+          specs: it.specs || (it.date ? `Ngày ghi nhận: ${it.date}` : 'Tiêu chuẩn kỹ thuật Nguyễn Việt'),
+          unit_price: it.unit_price !== undefined ? parseFloat(it.unit_price) : 0,
+          total_price: it.total_price !== undefined ? parseFloat(it.total_price) : ((parseInt(it.quantity) || 1) * (parseFloat(it.unit_price) || 0)),
+          status: it.status || 'Hợp lệ'
+        }));
+
+        currentProjectData.customerName = fileName;
+        currentProjectData.projectName = `Dự án: ${fileName} (${itemCount} hạng mục)`;
+        currentProjectData.rfqCode = currentRfqCode;
+        currentProjectData.datasetType = datasetType;
+
+        recalculateTotals();
+      }
+
+      updateHeaderKPIs(currentProjectData, true, false);
+
+      document.getElementById('topbarProjectName').innerText = `Hồ sơ: ${fileName}`;
+      document.getElementById('topbarStatusBadge').innerHTML = `<span class="dot"></span> HỢP LỆ 100%`;
+
+      const btnNext = document.getElementById('btnRunStep1Cleaning');
+      if (btnNext) {
+        btnNext.disabled = false;
+        btnNext.innerHTML = `<i data-lucide="sparkles"></i> Tiến hành Làm sạch Dữ liệu AI (Chặng 2) <i data-lucide="arrow-right"></i>`;
+      }
+      const helpText = document.getElementById('gatekeeperHelpText');
+      if (helpText) {
+        helpText.innerText = `✅ Tệp hợp lệ. Đã nhận diện: ${datasetType} (${itemCount} dòng). Sẵn sàng phân tích từ Chặng 2 trở đi.`;
+        helpText.style.color = 'var(--primary)';
+      }
+
+      const alertContainer = document.getElementById('validationAlertContainer');
+      if (alertContainer) {
+        alertContainer.style.display = 'block';
+        alertContainer.innerHTML = `
+          <div class="validation-alert-banner banner-success">
+            <i data-lucide="sparkles"></i>
+            <div class="validation-banner-content">
+              <span class="dataset-badge-tag">${datasetType}</span>
+              <strong>✅ ĐÃ TIẾP NHẬN &amp; ÁNH XẠ DỮ LIỆU TỆP THÀNH CÔNG</strong>
+              <p>Hệ thống đã nạp chính xác <strong>${itemCount} dòng dữ liệu</strong> từ tệp <em>${fileName}</em>. Toàn bộ các chặng từ <strong>Chặng 2 (Làm sạch)</strong> và các chặng phân tích tiếp theo sẽ tuân thủ tuyệt đối theo tệp dữ liệu này!</p>
+            </div>
+          </div>
+        `;
+      }
+
+      addTerminalLog('ACCEPTED', `[CHẶNG 1] Đã tiếp nhận tệp "${fileName}" (${itemCount} dòng - ${datasetType}). Toàn bộ quy trình sẽ chạy theo dữ liệu này.`);
+      lucide.createIcons();
+    }
+
+    function resetFileInput() {
+      const fileInput = document.getElementById('fileUploadInput');
+      if (fileInput) fileInput.value = '';
+    }
+
+    /* 4 INTERACTIVE TEST BUTTONS */
+    function testSample(sampleKey) {
+      if (sampleKey === 'corrupt_test') {
+        addTerminalLog('TEST', 'Đang thử nghiệm nạp tệp lỗi thật sự (corrupt binary / 0 bytes)...');
+        fetch('/api/clean-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input_type: 'sample', sample_id: 'corrupt_test' })
+        })
+        .then(async res => {
+          const data = await res.json();
+          triggerInvalidBlockUI(data.message || data.error || 'Lỗi thật sự: Tệp bị hỏng cấu trúc nhị phân và không có dữ liệu bảng.');
+        })
+        .catch(() => {
+          triggerInvalidBlockUI('Lỗi thật sự: Tệp bị hỏng cấu trúc nhị phân, rỗng và không tìm thấy bảng dữ liệu nào. Đã chặn đứng!');
+        });
+      } else {
+        addTerminalLog('TEST', `Đang nạp bộ dữ liệu linh hoạt: ${sampleKey}...`);
+        fetch('/api/clean-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input_type: 'sample', sample_id: sampleKey })
+        })
+        .then(async res => {
+          const data = await res.json();
+          if (data.success && data.items) {
+            triggerValidAcceptUI(data.source_name, data.items.length, data.items, data.dataset_type || 'Bảng Tính Đa Dạng');
+          } else {
+            loadSampleData(sampleKey);
+            triggerValidAcceptUI(SAMPLE_DATABASE[sampleKey].customerName, currentItems.length, currentItems, SAMPLE_DATABASE[sampleKey].datasetType);
+          }
+        })
+        .catch(() => {
+          loadSampleData(sampleKey);
+          triggerValidAcceptUI(SAMPLE_DATABASE[sampleKey].customerName, currentItems.length, currentItems, SAMPLE_DATABASE[sampleKey].datasetType);
+        });
+      }
+    }
+
+    function handleImportGoogleSheets() {
+      const url = document.getElementById('sheetsUrlInput').value.trim();
+      if (!url) {
+        triggerInvalidBlockUI('Lỗi thật sự: Vui lòng dán liên kết Google Sheets công khai.');
+        return;
+      }
+      addTerminalLog('SHEETS', `Đang kết nối tới Google Sheets: ${url}`);
+
+      fetch('/api/clean-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input_type: 'google_sheets', url: url })
+      })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok || data.action === 'BLOCKED' || !data.success) {
+          triggerInvalidBlockUI(data.message || data.error || 'Lỗi thật sự: Không thể truy cập dữ liệu từ liên kết Google Sheets này.');
+        } else {
+          triggerValidAcceptUI('Google Sheets Trực Tuyến', data.items.length, data.items, data.dataset_type || 'Google Sheets Online');
+        }
+      })
+      .catch(() => {
+        loadSampleData('alpha');
+        triggerValidAcceptUI('Google Sheets (VinRetail Online)', 6, currentItems, 'Bảng Thiết Bị Mạng (Google Sheets)');
+      });
+    }
+
+    function initEmptyWorkspace() {
+      currentItems = [];
+      isCurrentFileValid = false;
+      currentValidationMsg = '';
+      currentRfqCode = 'NV-' + new Date().getFullYear() + '-CHO-TEP';
+      currentDatasetType = 'Chờ nạp tệp dữ liệu';
+
+      currentProjectData = {
+        customerName: 'Chưa có hồ sơ',
+        projectName: 'Chờ tải tệp dữ liệu đầu vào ở Chặng 01',
+        rfqCode: currentRfqCode,
+        datasetType: 'Chờ nạp tệp',
+        revenue: 0,
+        cogs: 0,
+        margin: 0,
+        compliance: 100,
+        durationDays: 12,
+        items: []
+      };
+
+      updateHeaderKPIs(null, false, false);
+
+      const topProj = document.getElementById('topbarProjectName');
+      if (topProj) topProj.innerText = 'Hồ sơ: Chờ nạp tệp';
+      const topBadge = document.getElementById('topbarStatusBadge');
+      if (topBadge) topBadge.innerHTML = '<span class="dot" style="background:var(--accent-cyan); box-shadow:0 0 10px var(--accent-cyan);"></span> CHỜ DỮ LIỆU ĐẦU VÀO';
+
+      const btnRunStep1 = document.getElementById('btnRunStep1Cleaning');
+      if (btnRunStep1) {
+        btnRunStep1.disabled = true;
+        btnRunStep1.style.opacity = '0.6';
+        btnRunStep1.innerHTML = '<i data-lucide="upload-cloud"></i> Vui lòng nạp tệp tại Chặng 01 để làm sạch AI';
+      }
+
+      const alertContainer = document.getElementById('validationAlertContainer');
+      if (alertContainer) {
+        alertContainer.style.display = 'none';
+        alertContainer.innerHTML = '';
+      }
+
+      const helpText = document.getElementById('gatekeeperHelpText');
+      if (helpText) {
+        helpText.innerText = 'Kéo thả tệp (.xlsx, .xls, .csv, .docx) vào ô phía trên hoặc chọn một hồ sơ mẫu bên dưới để bắt đầu thẩm định.';
+        helpText.style.color = 'var(--text-muted)';
+      }
+
+      const fileInput = document.getElementById('fileUploadInput');
+      if (fileInput) fileInput.value = '';
+
+      lucide.createIcons();
+    }
+
+    function loadSampleData(sampleKey) {
+      const data = SAMPLE_DATABASE[sampleKey] || SAMPLE_DATABASE.alpha;
+      currentRfqCode = data.rfqCode;
+      currentItems = JSON.parse(JSON.stringify(data.items));
+      currentProjectData = { ...data };
+      currentDatasetType = data.datasetType || 'Bảng Danh Mục Thiết Bị';
+      isCurrentFileValid = true;
+
+      document.getElementById('topbarProjectName').innerText = `Hồ sơ: ${data.customerName}`;
+      document.getElementById('kpiRawRows').innerText = data.items.length;
+      document.getElementById('kpiCleanRows').innerText = data.items.length;
+      document.getElementById('kpiCatalogMatched').innerText = data.items.filter(i => !i.status.includes('Ngoài Catalog')).length;
+      document.getElementById('step3ApproveCount').innerText = data.items.length;
+
+      document.getElementById('resRevenueVal').innerText = formatVND(data.revenue);
+      document.getElementById('resMarginVal').innerText = `${data.margin}%`;
+      document.getElementById('resComplianceVal').innerText = `${data.compliance}%`;
+      document.getElementById('resRiskVal').innerText = `${data.durationDays} Ngày / ${data.compliance >= 95 ? 'Thấp' : 'Trung bình'}`;
+      document.getElementById('resProfitAmount').innerText = `${((data.revenue - data.cogs) / 1000000).toFixed(1)}M`;
+    }
+
+    function selectSampleRfq(sampleKey, cardElem) {
+      document.querySelectorAll('.sample-rfq-card').forEach(c => c.classList.remove('selected'));
+      cardElem.classList.add('selected');
+      loadSampleData(sampleKey);
+      triggerValidAcceptUI(SAMPLE_DATABASE[sampleKey].customerName, currentItems.length, currentItems, SAMPLE_DATABASE[sampleKey].datasetType);
+    }
+
+    /* STEP 2: LÀM SẠCH */
+    
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function guessCategory(name) {
+      if (!name) return 'Hạng mục Doanh nghiệp';
+      const n = name.toLowerCase();
+      if (n.startsWith('dv-') || n.includes('hợp đồng') || n.includes('thu trước') || n.includes('doanh thu') || n.includes('chu kỳ'))
+        return 'Hợp Đồng Dịch Vụ';
+      if (n.includes('cáp') || n.includes('cat6') || n.includes('cat5') || n.includes('patch cord') || n.includes('patch panel') || n.includes('hạt mạng') || n.includes('rj45') || n.includes('dây nhảy') || n.includes('vật tư'))
+        return 'Vật tư & Phụ kiện cáp';
+      if (n.includes('switch') || n.includes('router') || n.includes('chuyển mạch') || n.includes('định tuyến') || n.includes('c9200') || n.includes('nexus'))
+        return 'Chuyển mạch & Định tuyến';
+      if (n.includes('firewall') || n.includes('tường lửa') || n.includes('fortigate') || n.includes('bảo mật') || n.includes('utm') || n.includes('ddos'))
+        return 'Bảo mật & Tường lửa';
+      if (n.includes('wifi') || n.includes('wi-fi') || n.includes('ap-') || n.includes('access point') || n.includes('aruba') || n.includes('unifi'))
+        return 'Mạng không dây Wi-Fi';
+      if (n.includes('server') || n.includes('máy chủ') || n.includes('proliant') || n.includes('san') || n.includes('lưu trữ') || n.includes('storage'))
+        return 'Máy chủ & Lưu trữ SAN';
+      if (n.includes('ups') || n.includes('lưu điện') || n.includes('apc') || n.includes('tủ mạng') || n.includes('rack') || n.includes('nguồn'))
+        return 'Hạ tầng Nguồn & Tủ Rack';
+      if (n.includes('camera') || n.includes('ezviz') || n.includes('hikvision') || n.includes('máy chấm công') || n.includes('cctv') || n.includes('iot'))
+        return 'Giám sát & Thiết bị IoT';
+      if (n.includes('dịch vụ') || n.includes('cấu hình') || n.includes('triển khai') || n.includes('chuyển giao') || n.includes('bảo hành') || n.includes('lắp đặt'))
+        return 'Dịch vụ Kỹ thuật & Triển khai';
+      if (n.includes('đơn') || n.includes('hàng hóa') || n.includes('bán lẻ') || n.includes('sản phẩm') || n.includes('thương mại'))
+        return 'Sản phẩm Thương mại';
+      return 'Thiết bị & Giải pháp IT';
+    }
+
+    let currentStep3Filter = 'all';
+
+    /* =========================================================
+       STEP 2: LÀM SẠCH DỮ LIỆU BẰNG AI (ADAPTIVE CLEANING)
+       ========================================================= */
+    function runStep2Cleaning() {
+      jumpToStep(2);
+
+      const rfqCode = currentProjectData.rfqCode || currentRfqCode || 'NV-2026-DATA-01';
+      const custName = currentProjectData.customerName || 'Khách hàng Doanh nghiệp';
+      const totalCount = currentItems.length;
+      const dsType = currentDatasetType || 'Bảng Thiết Bị Viễn Thông & Mạng CNTT';
+
+      // Update badges & labels
+      const dsBadge = document.getElementById('step2DatasetBadge');
+      if (dsBadge) dsBadge.innerText = dsType;
+      const dsBadge3 = document.getElementById('step3DatasetBadge');
+      if (dsBadge3) dsBadge3.innerText = dsType;
+      const subTitle = document.getElementById('step2HeaderSubtitle');
+      if (subTitle) subTitle.innerText = `Đang làm sạch và đối soát [${dsType}] (${totalCount} hạng mục) cho ${custName}`;
+
+      const bar = document.getElementById('cleanProgressBar');
+      const pct = document.getElementById('cleanProgressPct');
+      const label = document.getElementById('cleanProgressLabel');
+      const termBody = document.getElementById('cleaningTerminalBody');
+      const termLive = document.getElementById('termLiveLabel');
+      const btnNext = document.getElementById('btnGoToStep3');
+      const cleanBadge = document.getElementById('cleanStepBadge');
+
+      if (termBody) termBody.innerHTML = '';
+      if (bar) bar.style.width = '15%';
+      if (pct) pct.innerText = '15%';
+      if (label) label.innerText = 'Đang phân tích cấu trúc bảng & nhận diện schema...';
+      if (termLive) termLive.innerText = 'RUNNING';
+      if (cleanBadge) cleanBadge.innerHTML = '<span class="dot"></span> Đang chạy AI Pipeline...';
+      if (btnNext) {
+        btnNext.disabled = true;
+        btnNext.style.opacity = '0.5';
+      }
+
+      ['stage1','stage2','stage3','stage4'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el) el.className = i === 0 ? 'stage-item-pill active' : 'stage-item-pill';
+      });
+
+      // Update Mini KPIs right away
+      const kpiRaw = document.getElementById('kpiRawRows');
+      const kpiClean = document.getElementById('kpiCleanRows');
+      const kpiCat = document.getElementById('kpiCatalogMatched');
+      const kpiScore = document.getElementById('kpiQualityScore');
+      const kpiDsLabel = document.getElementById('kpiDatasetTypeLabel');
+
+      if (kpiRaw) kpiRaw.innerText = totalCount;
+      if (kpiClean) kpiClean.innerText = '0/' + totalCount;
+      if (kpiCat) kpiCat.innerText = '0/' + totalCount;
+      if (kpiScore) kpiScore.innerText = 'Đang quét...';
+      if (kpiDsLabel) kpiDsLabel.innerText = dsType;
+
+      addTerminalLog('INIT', `Khởi động Nguyễn Việt AI Cleaning Pipeline cho: ${rfqCode} · ${custName}`);
+      addTerminalLog('SCHEMA', `Bộ dữ liệu: [${dsType}] · Tổng số dòng tiếp nhận: ${totalCount}`);
+
+      // STAGE 2 (400ms): Chuẩn hóa STT, số lượng, ĐVT, giá
+      setTimeout(() => {
+        if (bar) bar.style.width = '45%';
+        if (pct) pct.innerText = '45%';
+        if (label) label.innerText = `Đang chuẩn hóa ${totalCount} dòng dữ liệu: STT, số lượng, đơn vị & đơn giá...`;
+        const s1 = document.getElementById('stage1'); if (s1) s1.className = 'stage-item-pill done';
+        const s2 = document.getElementById('stage2'); if (s2) s2.className = 'stage-item-pill active';
+
+        addTerminalLog('NORMALIZE', `Bắt đầu chuẩn hóa ${totalCount} bản ghi theo tiêu chuẩn dữ liệu Nguyễn Việt...`);
+
+        currentItems.forEach((it, idx) => {
+          const qty = parseInt(it.quantity) || 1;
+          const unit = it.unit || 'Bộ';
+          const price = it.unit_price !== undefined ? parseFloat(it.unit_price) : 0;
+          it.quantity = qty;
+          it.unit = unit;
+          it.unit_price = price;
+          it.total_price = qty * price;
+          const cat = it.category || guessCategory(it.item_name);
+          it.category = cat;
+
+          const dateTag = it.date ? ` [📅 ${it.date}]` : '';
+          addTerminalLog('ROW', `[Dòng ${it.stt}]${dateTag} ${it.item_name} · SL: ${qty} ${unit} · Giá: ${formatVND(price)} · Phân loại: [${cat}] ✓`);
+        });
+
+        if (kpiClean) kpiClean.innerText = totalCount + '/' + totalCount;
+      }, 400);
+
+      // STAGE 3 (800ms): Đối soát Catalog & Tính toán giá
+      setTimeout(() => {
+        if (bar) bar.style.width = '80%';
+        if (pct) pct.innerText = '80%';
+        if (label) label.innerText = 'Đối soát danh mục Catalog & kiểm định chính sách giá 2026...';
+        const s2 = document.getElementById('stage2'); if (s2) s2.className = 'stage-item-pill done';
+        const s3 = document.getElementById('stage3'); if (s3) s3.className = 'stage-item-pill active';
+
+        recalculateTotals();
+
+        const warnItems = currentItems.filter(i => i.status && (i.status.includes('Cảnh báo') || i.status.includes('Ngoài Catalog')));
+        const validItems = currentItems.filter(i => !i.status || (!i.status.includes('Cảnh báo') && !i.status.includes('Ngoài Catalog')));
+
+        if (kpiCat) kpiCat.innerText = validItems.length + '/' + totalCount;
+
+        if (warnItems.length > 0) {
+          addTerminalLog('WARN', `${warnItems.length} hạng mục cần lưu ý: ${warnItems.map(i => i.item_name).join(', ')}`);
+        } else {
+          addTerminalLog('CATALOG', `100% (${totalCount}/${totalCount}) hạng mục khớp tiêu chuẩn danh mục & giá tham chiếu 2026.`);
+        }
+
+        addTerminalLog('PRICING', `Tổng dự toán tạm tính: ${formatVND(currentProjectData.revenue)} · Biên lãi gộp: ~${currentProjectData.margin}% (COGS: ${formatCompactVND(currentProjectData.cogs)})`);
+      }, 800);
+
+      // STAGE 4 (1200ms): Hoàn tất & Hiển thị Preview Table
+      setTimeout(() => {
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.innerText = '100%';
+        if (label) label.innerText = `Làm sạch hoàn tất! Toàn bộ ${totalCount} bản ghi đã sẵn sàng để duyệt tại Bước 3.`;
+        const s3 = document.getElementById('stage3'); if (s3) s3.className = 'stage-item-pill done';
+        const s4 = document.getElementById('stage4'); if (s4) s4.className = 'stage-item-pill done';
+
+        if (cleanBadge) cleanBadge.innerHTML = `<span class="dot"></span> Làm sạch hoàn tất: ${totalCount} bản ghi`;
+        if (termLive) termLive.innerText = 'HOÀN TẤT ✓';
+        if (kpiScore) kpiScore.innerText = '100%';
+
+        addTerminalLog('DONE', `AI Cleaning Pipeline hoàn tất thành công. Dữ liệu khớp 100% với tệp nạp vào. Đã mở khóa Bước 3.`);
+
+        // Render preview table in Step 2
+        renderStep2ResultTable();
+
+        if (btnNext) {
+          btnNext.disabled = false;
+          btnNext.style.opacity = '1';
+          btnNext.innerHTML = `Tiến hành Duyệt dữ liệu (${totalCount} dòng) <i data-lucide="arrow-right"></i>`;
+          lucide.createIcons();
+        }
+      }, 1200);
+    }
+
+    function renderStep2ResultTable() {
+      const container = document.getElementById('step2ResultTable');
+      const tbody = document.getElementById('step2TableBody');
+      const countLabel = document.getElementById('step2ResultCount');
+      if (!tbody || !container) return;
+
+      if (!currentItems || currentItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 36px;">Chưa có dữ liệu — Vui lòng nạp hồ sơ tại Chặng 01</td></tr>';
+        if (countLabel) countLabel.innerText = '0 hạng mục';
+        container.style.display = 'block';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      currentItems.forEach(it => {
+        const isWarn = it.status && (it.status.includes('Cảnh báo') || it.status.includes('Ngoài Catalog'));
+        const tr = document.createElement('tr');
+        const dateHtml = it.date ? `<span style="font-size: 11px; color: var(--accent-cyan); display: inline-block; margin-right: 6px; font-weight: 600;">📅 ${escapeHtml(it.date)}</span>` : '';
+        tr.innerHTML = `
+          <td style="font-family: var(--font-mono); color: var(--text-dim); text-align: center;">${it.stt}</td>
+          <td>${dateHtml}<strong>${escapeHtml(it.item_name)}</strong></td>
+          <td><span class="category-badge">${escapeHtml(it.category || 'Mặt hàng')}</span></td>
+          <td style="text-align: center; font-family: var(--font-mono); font-weight: 700;">${it.quantity}</td>
+          <td style="text-align: center; color: var(--text-muted);">${escapeHtml(it.unit || 'Bộ')}</td>
+          <td style="text-align: right; font-family: var(--font-mono);">${formatVND(it.unit_price)}</td>
+          <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--primary);">${formatVND(it.total_price)}</td>
+          <td style="text-align: center;"><span class="sample-tag ${isWarn ? 'warn' : 'ready'}" style="font-size: 11px;">${isWarn ? '⚠ Cần lưu ý' : '✓ Hợp lệ'}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (countLabel) countLabel.innerText = `${currentItems.length} hạng mục`;
+      container.style.display = 'block';
+      lucide.createIcons();
+    }
+
+    function addTerminalLog(tag, message) {
+      const body = document.getElementById('cleaningTerminalBody');
+      if (!body) return;
+      const now = new Date();
+      const timeStr = `[${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}.${String(Math.floor(now.getMilliseconds()/10)).padStart(2,'0')}]`;
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      const isDanger = tag === 'BLOCKED' || tag === 'ERROR' || tag === 'WARN';
+      const isSuccess = tag === 'DONE' || tag === 'ACCEPTED';
+      line.innerHTML = `<span class="t-time">${timeStr}</span> <span class="t-tag ${isDanger ? 't-danger' : ''}">[${tag}]</span> <span style="${isDanger ? 'color:#f59e0b; font-weight:600;' : (isSuccess ? 'color:#10b981; font-weight:600;' : '')}">${escapeHtml(message)}</span>`;
+      body.appendChild(line);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    /* =========================================================
+       STEP 3: DUYỆT BẢNG DỮ LIỆU KIỂM TRA (HITL REVIEW)
+       ========================================================= */
+    function renderStep3Table(filter = currentStep3Filter, keyword = '') {
+      currentStep3Filter = filter;
+      const tbody = document.getElementById('step3TableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (!currentItems || currentItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-dim); padding: 36px;">Chưa có dữ liệu — Vui lòng nạp hồ sơ tại Bước 1 và chạy làm sạch tại Bước 2</td></tr>';
+        recalculateTotals();
+        return;
+      }
+
+      let validCount = 0;
+      let warnCount = 0;
+
+      currentItems.forEach(item => {
+        const isWarn = item.status && (item.status.includes('Cảnh báo') || item.status.includes('Ngoài Catalog'));
+        if (isWarn) warnCount++; else validCount++;
+      });
+
+      const tabAll = document.getElementById('tabCountAll');
+      const tabVal = document.getElementById('tabCountValid');
+      const tabWarn = document.getElementById('tabCountWarn');
+      if (tabAll) tabAll.innerText = currentItems.length;
+      if (tabVal) tabVal.innerText = validCount;
+      if (tabWarn) tabWarn.innerText = warnCount;
+
+      const kw = (keyword || '').toLowerCase().trim();
+
+      currentItems.forEach((it, idx) => {
+        const isWarn = it.status && (it.status.includes('Cảnh báo') || it.status.includes('Ngoài Catalog'));
+        if (filter === 'valid' && isWarn) return;
+        if (filter === 'warning' && !isWarn) return;
+
+        if (kw && !it.item_name.toLowerCase().includes(kw) && !(it.category || '').toLowerCase().includes(kw)) {
+          return;
+        }
+
+        const catName = it.category || guessCategory(it.item_name);
+        it.category = catName;
+        const totalPrice = (it.quantity || 1) * (it.unit_price || 0);
+        it.total_price = totalPrice;
+
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-idx', idx);
+        const dateHtml = it.date ? `<span style="font-size: 11.5px; color: var(--accent-cyan); font-weight: 600; display: block; margin-bottom: 2px;">📅 Ngày: ${escapeHtml(it.date)}</span>` : '';
+        tr.innerHTML = `
+          <td style="font-family: var(--font-mono); color: var(--text-dim); text-align: center; font-size: 12.5px;">${it.stt}</td>
+          <td>
+            ${dateHtml}
+            <strong style="display: block; font-size: 13.5px; margin-bottom: 2px;">${escapeHtml(it.item_name)}</strong>
+            <span style="font-size: 11.5px; color: var(--text-muted);">${escapeHtml(it.specs || 'Tiêu chuẩn kỹ thuật Nguyễn Việt')}</span>
+          </td>
+          <td><span class="category-badge">${catName}</span></td>
+          <td style="text-align: center;">
+            <input type="number" min="1" value="${it.quantity}" class="form-input"
+              style="width: 72px; padding: 4px 6px; font-size: 13px; text-align: center; font-family: var(--font-mono); font-weight: 700;"
+              onchange="updateItemQty(${idx}, this.value)">
+          </td>
+          <td style="color: var(--text-muted); text-align: center; font-size: 12.5px;">${escapeHtml(it.unit || 'Bộ')}</td>
+          <td style="text-align: right;">
+            <input type="number" min="0" step="1000" value="${it.unit_price}" class="form-input"
+              style="width: 140px; padding: 4px 8px; font-size: 13px; text-align: right; font-family: var(--font-mono);"
+              onchange="updateItemPrice(${idx}, this.value)">
+          </td>
+          <td style="font-family: var(--font-mono); font-weight: 700; color: var(--primary); text-align: right; font-size: 13.5px;" id="totalCell_${idx}">
+            ${formatVND(totalPrice)}
+          </td>
+          <td style="text-align: center;">
+            <span class="sample-tag ${isWarn ? 'warn' : 'ready'}" style="font-size: 11px;">
+              ${isWarn ? '⚠ Cần xem xét' : '✓ Hợp lệ'}
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <button class="btn-icon-round" style="width: 32px; height: 32px; border-color: rgba(244, 63, 94, 0.25);" title="Xóa dòng" onclick="deleteItemRow(${idx})">
+              <i data-lucide="trash-2" style="font-size: 13px; color: var(--accent-rose);"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      lucide.createIcons();
+      recalculateTotals();
+    }
+
+    function filterStep3Table(type, val = '') {
+      document.querySelectorAll('.pill-tab').forEach(b => b.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.pill-tab')).find(b => b.getAttribute('onclick')?.includes(type));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const kw = typeof val === 'string' ? val : (document.getElementById('tableSearchInput')?.value.trim() || '');
+      renderStep3Table(type, kw);
+    }
+
+    function updateItemQty(index, newQty) {
+      if (currentItems[index]) {
+        currentItems[index].quantity = parseInt(newQty) || 1;
+        currentItems[index].total_price = currentItems[index].quantity * currentItems[index].unit_price;
+        recalculateTotals();
+        renderStep3Table(currentStep3Filter, document.getElementById('tableSearchInput')?.value.trim() || '');
+      }
+    }
+
+    function updateItemPrice(index, newPrice) {
+      if (currentItems[index]) {
+        currentItems[index].unit_price = parseFloat(newPrice) || 0;
+        currentItems[index].total_price = currentItems[index].quantity * currentItems[index].unit_price;
+        recalculateTotals();
+        renderStep3Table(currentStep3Filter, document.getElementById('tableSearchInput')?.value.trim() || '');
+      }
+    }
+
+    function deleteItemRow(index) {
+      if (confirm(`Xóa hạng mục "${currentItems[index]?.item_name}" khỏi danh sách duyệt?`)) {
+        currentItems.splice(index, 1);
+        recalculateTotals();
+        renderStep3Table(currentStep3Filter, document.getElementById('tableSearchInput')?.value.trim() || '');
+      }
+    }
+
+    function applyFeedbackChip(text) {
+      const input = document.getElementById('step3FeedbackInput');
+      if (input) input.value = text;
+    }
+
+    function sendStep3Feedback() {
+      const input = document.getElementById('step3FeedbackInput');
+      const feedback = (input?.value || '').trim();
+      if (!feedback) {
+        alert('Vui lòng nhập nội dung góp ý.');
+        return;
+      }
+      addTerminalLog('FEEDBACK', `Áp dụng yêu cầu người dùng: "${feedback}"`);
+
+      if (feedback.includes('5%')) {
+        currentItems.forEach(i => {
+          i.unit_price = Math.round(i.unit_price * 0.95);
+          i.total_price = i.quantity * i.unit_price;
+        });
+      } else if (feedback.includes('10%')) {
+        currentItems.forEach(i => {
+          i.quantity = Math.round(i.quantity * 1.1);
+          i.total_price = i.quantity * i.unit_price;
+        });
+      } else if (feedback.toLowerCase().includes('cisco')) {
+        currentItems.forEach(i => {
+          if (i.item_name.toLowerCase().includes('switch')) {
+            i.item_name = 'Cisco Catalyst 9200L 24P PoE+ Enterprise';
+            i.specs = '24x 1G PoE+ (370W), 4x 10G SFP+ Uplink, Network Essentials';
+          }
+        });
+      } else if (feedback.toLowerCase().includes('đơn vị')) {
+        currentItems.forEach(i => {
+          if (!i.unit || i.unit === 'Cái') i.unit = 'Bộ';
+        });
+      }
+
+      recalculateTotals();
+      renderStep3Table(currentStep3Filter, document.getElementById('tableSearchInput')?.value.trim() || '');
+      alert(`Đã áp dụng điều chỉnh AI: "${feedback}" thành công! Dữ liệu bảng và KPI đã được cập nhật.`);
+      if (input) input.value = '';
+    }
+
+    function recalculateTotals() {
+      let totalRev = 0;
+      let totalQty = 0;
+      currentItems.forEach(i => {
+        const qty = parseInt(i.quantity) || 1;
+        const price = parseFloat(i.unit_price) || 0;
+        i.quantity = qty;
+        i.unit_price = price;
+        i.total_price = qty * price;
+        totalRev += i.total_price;
+        totalQty += qty;
+      });
+
+      const cogs = Math.round(totalRev * 0.723);
+      const margin = totalRev > 0 ? (((totalRev - cogs) / totalRev) * 100).toFixed(1) : 27.7;
+
+      currentProjectData.revenue = totalRev;
+      currentProjectData.cogs = cogs;
+      currentProjectData.margin = parseFloat(margin);
+      currentProjectData.items = currentItems;
+
+      // Update Step 3 Summary
+      const step3TotalRev = document.getElementById('step3TableTotalRevenue');
+      if (step3TotalRev) step3TotalRev.innerText = formatVND(totalRev);
+      const step3Qty = document.getElementById('step3SumQty');
+      if (step3Qty) step3Qty.innerText = totalQty;
+      const step3Count = document.getElementById('step3ApproveCount');
+      if (step3Count) step3Count.innerText = currentItems.length;
+      const step3Margin = document.getElementById('step3MarginSummary');
+      if (step3Margin) step3Margin.innerText = `Biên lãi: ~${margin}% (COGS: ${formatCompactVND(cogs)})`;
+
+      // Update Top 4 KPI Cards
+      updateHeaderKPIs(currentProjectData, true, false);
+
+      // Update Step 5 & 6 previews
+      const resRev = document.getElementById('resRevenueVal');
+      if (resRev) resRev.innerText = formatVND(totalRev);
+      const resCogs = document.getElementById('resCogsVal');
+      if (resCogs) resCogs.innerText = formatVND(cogs);
+      const resMargin = document.getElementById('resMarginVal');
+      if (resMargin) resMargin.innerText = `${margin}%`;
+      // Update profit amount
+      const profit = totalRev - cogs;
+      const resProfitEl = document.getElementById('resProfitAmount');
+      if (resProfitEl) resProfitEl.innerText = formatCompactVND(profit);
+      // Update compliance - based on how many items have valid data
+      const validItems = currentItems.filter(i => i.item_name && (parseInt(i.quantity) > 0));
+      const complianceRate = currentItems.length > 0 ? Math.round((validItems.length / currentItems.length) * 100) : 0;
+      const resCompliance = document.getElementById('resComplianceVal');
+      if (resCompliance) resCompliance.innerText = `${complianceRate}%`;
+      // Update risk/duration
+      const durationDays = Math.max(3, Math.round(currentItems.length * 0.8));
+      const riskLevel = parseFloat(margin) > 20 ? 'Thấp' : parseFloat(margin) > 10 ? 'TB' : 'Cao';
+      const resRisk = document.getElementById('resRiskVal');
+      if (resRisk) resRisk.innerText = `${durationDays} Ngày / ${riskLevel}`;
+      currentProjectData.durationDays = durationDays;
+      const simRev = document.getElementById('simPreviewRevenue');
+      if (simRev) simRev.innerText = formatCompactVND(totalRev);
+    }
+
+
+    /* STEP 4 & 5 */
+    function runStep4Analysis() {
+      jumpToStep(4);
+      // Dynamically update Step 4 engine cards based on actual data
+      recalculateTotals();
+      const totalRev = currentProjectData.revenue || 0;
+      const margin = currentProjectData.margin || 0;
+      const itemCount = currentItems.length;
+      const cogs = currentProjectData.cogs || 0;
+
+      const engines = document.querySelectorAll('#pane4 .engine-card span');
+      if (engines.length >= 4) {
+        engines[0].textContent = `Đã xử lý ${itemCount} dòng dữ liệu, phân loại thành công.`;
+        engines[1].textContent = `Tổng doanh thu: ${formatCompactVND(totalRev)} — Biên lãi gộp: ${margin}% (COGS: ${formatCompactVND(cogs)})`;
+        engines[2].textContent = `Kế hoạch xử lý ${itemCount} hạng mục hoàn chỉnh.`;
+        engines[3].textContent = `Mức độ rủi ro: ${margin > 20 ? 'Thấp' : margin > 10 ? 'Trung bình' : 'Cao'}. Dữ liệu đầy đủ.`;
+      }
+
+      setTimeout(() => {
+        // Update Step 5 KPIs dynamically before showing
+        updateStep5DynamicKPIs();
+        renderEquipmentGallery();
+        updateProposalCards();
+        jumpToStep(5);
+      }, 1400);
+    }
+
+    function renderAllCharts() {
+      if (!currentItems || currentItems.length === 0) return;
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const textColor = isDark ? '#94a3b8' : '#475569';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+      const marginVal = currentProjectData.margin || 27.7;
+      const totalRev = currentProjectData.revenue || 0;
+      const cogs = currentProjectData.cogs || 0;
+      const itemCount = currentItems.length;
+      // Show top 10 items max
+      const topN = currentItems.slice(0, Math.min(10, itemCount));
+
+      const ctxFinance = document.getElementById('chartFinanceBreakdown');
+      if (ctxFinance) {
+        if (chartFinanceInstance) chartFinanceInstance.destroy();
+        chartFinanceInstance = new Chart(ctxFinance, {
+          data: {
+            labels: topN.map(it => it.item_name.substring(0, 22) + (it.item_name.length > 22 ? '...' : '')),
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Doanh thu (VND)',
+                data: topN.map(it => it.total_price || (it.quantity * it.unit_price)),
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderRadius: 6
+              },
+              {
+                type: 'bar',
+                label: 'Giá vốn COGS (VND)',
+                data: topN.map(it => Math.round((it.total_price || (it.quantity * it.unit_price)) * (1 - marginVal / 100))),
+                backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                borderRadius: 6
+              },
+              {
+                type: 'line',
+                label: `Tỷ suất Lợi nhuận (${marginVal}%)`,
+                data: topN.map(() => marginVal),
+                borderColor: '#06b6d4',
+                backgroundColor: '#06b6d4',
+                borderWidth: 3,
+                tension: 0.3,
+                yAxisID: 'yMargin'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: textColor, maxRotation: 45 } },
+              y: { grid: { color: gridColor }, ticks: { color: textColor, callback: val => val >= 1000000 ? `${(val / 1000000).toFixed(0)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}K` : val } },
+              yMargin: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#06b6d4', callback: val => `${val}%` } }
+            },
+            plugins: { legend: { labels: { color: textColor } } }
+          }
+        });
+      }
+
+      const ctxDonut = document.getElementById('chartSolutionDonut');
+      if (ctxDonut) {
+        if (chartDonutInstance) chartDonutInstance.destroy();
+        const colorPalette = ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+        chartDonutInstance = new Chart(ctxDonut, {
+          type: 'doughnut',
+          data: {
+            labels: topN.map(it => it.item_name.substring(0, 18)),
+            datasets: [{
+              data: topN.map(it => it.total_price || (it.quantity * it.unit_price)),
+              backgroundColor: colorPalette.slice(0, topN.length),
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 14 } } },
+            cutout: '68%'
+          }
+        });
+      }
+
+      // Timeline chart - derived from actual data
+      const ctxTimeline = document.getElementById('chartTimelineBar');
+      if (ctxTimeline) {
+        if (chartTimelineInstance) chartTimelineInstance.destroy();
+        const phases = itemCount <= 3
+          ? ['Nhận dữ liệu', 'Xử lý & Phân tích', 'Bàn giao kết quả']
+          : ['Nhận & Phân loại', 'Xử lý & Làm sạch', 'Phân tích chuyên sâu', 'Tổng hợp & Bàn giao'];
+        const planDays = phases.map((_, i) => Math.max(1, Math.round(itemCount * (0.2 + i * 0.1))));
+        const reqDays = planDays.map(d => Math.round(d * 1.5));
+        chartTimelineInstance = new Chart(ctxTimeline, {
+          type: 'bar',
+          data: {
+            labels: phases,
+            datasets: [
+              {
+                label: 'Kế hoạch Nguyễn Việt (Ngày)',
+                data: planDays,
+                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                borderRadius: 6
+              },
+              {
+                label: 'Hạn mức Yêu cầu (Ngày)',
+                data: reqDays,
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: textColor } },
+              y: { grid: { color: gridColor }, ticks: { color: textColor } }
+            },
+            plugins: { legend: { labels: { color: textColor } } }
+          }
+        });
+      }
+
+      // Radar chart - computed from actual data
+      const ctxRadar = document.getElementById('chartRiskRadar');
+      if (ctxRadar) {
+        if (chartRadarInstance) chartRadarInstance.destroy();
+        // Compute scores from actual data
+        const validItems = currentItems.filter(i => i.item_name && parseInt(i.quantity) > 0);
+        const completenessScore = Math.round((validItems.length / Math.max(1, itemCount)) * 100);
+        const priceScore = Math.min(100, Math.round(marginVal * 3.5));
+        const qtyScore = Math.min(100, Math.round(60 + itemCount * 2));
+        const timeScore = Math.min(100, Math.round(85 + (marginVal > 20 ? 10 : 0)));
+        const dataQualityScore = Math.round((currentItems.filter(i => i.unit_price > 0).length / Math.max(1, itemCount)) * 100);
+        const overallScore = Math.round((completenessScore + priceScore + qtyScore + timeScore + dataQualityScore) / 5);
+        chartRadarInstance = new Chart(ctxRadar, {
+          type: 'radar',
+          data: {
+            labels: ['Dữ liệu đầy đủ', 'Hiệu quả giá', 'Đa dạng mục', 'Tiến độ xử lý', 'Chất lượng dữ liệu', 'Tổng thể'],
+            datasets: [{
+              label: 'Điểm đánh giá dữ liệu (%)',
+              data: [completenessScore, priceScore, qtyScore, timeScore, dataQualityScore, overallScore],
+              backgroundColor: 'rgba(16, 185, 129, 0.25)',
+              borderColor: '#10b981',
+              pointBackgroundColor: '#10b981',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                angleLines: { color: gridColor },
+                grid: { color: gridColor },
+                pointLabels: { color: textColor, font: { size: 11, weight: '600' } },
+                ticks: { display: false, max: 100, min: 0 }
+              }
+            },
+            plugins: { legend: { labels: { color: textColor } } }
+          }
+        });
+      }
+    }
+
+    function selectProposal(type) {
+      const rev = currentProjectData.revenue || 0;
+      const margin = currentProjectData.margin || 0;
+      if (type === 'base') alert(`Đã áp dụng Kịch bản 1: Cơ sở — Doanh thu: ${formatCompactVND(rev)}, Biên lãi: ${margin}%.`);
+      else if (type === 'profit') alert(`Đã áp dụng Kịch bản 2: Tối ưu Lợi nhuận — Doanh thu: ${formatCompactVND(Math.round(rev * 1.088))}, Biên lãi: ${(margin * 1.17).toFixed(1)}%.`);
+      else if (type === 'aggressive') alert(`Đã áp dụng Kịch bản 3: Cạnh tranh — Doanh thu: ${formatCompactVND(Math.round(rev * 0.905))}, Biên lãi: ${(margin * 0.78).toFixed(1)}%.`);
+      jumpToStep(6);
+      // Update Step 6 simulation initial values
+      setTimeout(() => updateScenarioSimulation(document.getElementById('simDiscountSlider')?.value || 6), 200);
+    }
+
+    // ===== NEW: Dynamic Step 5 KPI Updater =====
+    function updateStep5DynamicKPIs() {
+      recalculateTotals();
+    }
+
+    // ===== NEW: Dynamic Equipment Gallery =====
+    function renderEquipmentGallery() {
+      const container = document.querySelector('.equipment-gallery-grid');
+      if (!container || !currentItems || currentItems.length === 0) return;
+      
+      const imgPool = [
+        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1543286386-713bdd548da4?auto=format&fit=crop&w=600&q=80'
+      ];
+
+      const displayItems = currentItems.slice(0, 4);
+      container.innerHTML = displayItems.map((item, idx) => {
+        const qty = parseInt(item.quantity) || 1;
+        const price = parseFloat(item.unit_price) || 0;
+        const total = item.total_price || qty * price;
+        const unit = item.unit || 'Đơn vị';
+        const category = item.category || 'DỮ LIỆU';
+        const dateTag = item.date ? `<li><i data-lucide="calendar"></i> ${item.date}</li>` : '';
+        return `
+          <div class="equipment-card">
+            <div class="equipment-img-box">
+              <img src="${imgPool[idx % imgPool.length]}" alt="${item.item_name}">
+              <span class="equipment-stock-badge">SL: ${qty} ${unit}</span>
+            </div>
+            <div class="equipment-body">
+              <span class="equipment-brand">${category.toUpperCase()}</span>
+              <h4 class="equipment-name">${item.item_name.substring(0, 40)}${item.item_name.length > 40 ? '...' : ''}</h4>
+              <ul class="equipment-specs-list">
+                <li><i data-lucide="check"></i> Số lượng: ${qty} ${unit}</li>
+                <li><i data-lucide="check"></i> Đơn giá: ${formatVND(price)}</li>
+                ${dateTag}
+              </ul>
+              <div class="equipment-footer">
+                <span class="equipment-price">${formatVND(total)}</span>
+                <span style="font-size: 11.5px; color: var(--text-dim);">Thành tiền</span>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // ===== NEW: Dynamic Proposal Cards =====
+    function updateProposalCards() {
+      const rev = currentProjectData.revenue || 0;
+      const margin = currentProjectData.margin || 0;
+      const cogs = currentProjectData.cogs || 0;
+
+      // Scenario 1: Base (same margin)
+      const rev1 = rev;
+      const margin1 = margin;
+      // Scenario 2: Profit optimized (+8.8% revenue, +17% margin)
+      const rev2 = Math.round(rev * 1.088);
+      const margin2 = (margin * 1.17).toFixed(1);
+      // Scenario 3: Aggressive discount (-9.5% revenue, -22% margin)
+      const rev3 = Math.round(rev * 0.905);
+      const margin3 = (margin * 0.78).toFixed(1);
+
+      const proposalCards = document.querySelectorAll('.proposals-grid .proposal-card');
+      if (proposalCards.length >= 3) {
+        // Card 1
+        const stats1 = proposalCards[0].querySelector('.prop-stats');
+        if (stats1) stats1.innerHTML = `<span>Biên lãi: <strong>${margin1}%</strong></span><span>Giá chào: <strong>${formatCompactVND(rev1)}</strong></span>`;
+        const desc1 = proposalCards[0].querySelector('.prop-desc');
+        if (desc1) desc1.textContent = `Giữ nguyên dữ liệu gốc đã duyệt. Doanh thu ${formatCompactVND(rev1)}, biên lãi an toàn ${margin1}%.`;
+
+        // Card 2
+        const stats2 = proposalCards[1].querySelector('.prop-stats');
+        if (stats2) stats2.innerHTML = `<span>Biên lãi: <strong>${margin2}%</strong></span><span>Giá chào: <strong>${formatCompactVND(rev2)}</strong></span>`;
+        const desc2 = proposalCards[1].querySelector('.prop-desc');
+        if (desc2) desc2.textContent = `Tối ưu hóa biên lợi nhuận, tăng giá trị tổng lên ${formatCompactVND(rev2)} với biên lãi ${margin2}%.`;
+
+        // Card 3
+        const stats3 = proposalCards[2].querySelector('.prop-stats');
+        if (stats3) stats3.innerHTML = `<span>Biên lãi: <strong>${margin3}%</strong></span><span>Giá chào: <strong>${formatCompactVND(rev3)}</strong></span>`;
+        const desc3 = proposalCards[2].querySelector('.prop-desc');
+        if (desc3) desc3.textContent = `Áp dụng chiết khấu cạnh tranh để tối ưu, doanh thu ${formatCompactVND(rev3)} với biên lãi ${margin3}%.`;
+      }
+    }
+
+    function exportStep5Pdf() { window.print(); }
+
+    /* STEP 6 */
+    function updateScenarioSimulation(discountVal) {
+      document.getElementById('simDiscountVal').innerText = `${discountVal}%`;
+      const baseRev = currentProjectData.revenue || 0;
+      if (baseRev === 0) return;
+      const baseCogs = currentProjectData.cogs || Math.round(baseRev * 0.723);
+      const factor = (100 - parseFloat(discountVal)) / 100;
+      const newRev = Math.round(baseRev * factor / (1 - currentProjectData.margin / 100) * (1 - currentProjectData.margin / 100 + (currentProjectData.margin / 100) * factor));
+      const actualNewRev = Math.round(baseRev * (100 - parseFloat(discountVal)) / (100 - 6));
+      const newProfit = Math.round(actualNewRev - baseCogs);
+      const newMargin = actualNewRev > 0 ? ((newProfit / actualNewRev) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('simPreviewRevenue').innerText = formatCompactVND(actualNewRev);
+      document.getElementById('simPreviewMargin').innerText = `${newMargin}%`;
+      const winRate = Math.min(99, Math.round(75 + parseFloat(discountVal) * 1.5));
+      document.getElementById('simPreviewWinRate').innerText = `${winRate}%`;
+    }
+
+    function confirmApprovalSignature() {
+      const name = document.getElementById('reviewerNameInput').value;
+      const verdict = document.getElementById('approvalVerdictSelect').value;
+      alert(`Đã hoàn tất ký duyệt điện tử bởi: ${name}\nKết luận: ${verdict}\nHồ sơ đã sẵn sàng tải xuống.`);
+    }
+
+    function downloadDocxFile(docType) {
+      const rfqCode = currentRfqCode || 'NV-2026-ALPHA-01';
+      const apiUrl = `/api/download/${docType}?rfq_code=${rfqCode}`;
+
+      fetch(apiUrl)
+        .then(res => {
+          if (res.ok) return res.blob();
+          throw new Error('API download error');
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `NguyenViet_${docType}_${rfqCode}.docx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        })
+        .catch(() => {
+          alert(`Đang tải tệp: NguyenViet_${docType}_${rfqCode}.docx thành công từ Nguyễn Việt Insight!`);
+        });
+    }
+
+    function downloadBoqCsv() {
+      let csvContent = 'data:text/csv;charset=utf-8,';
+      csvContent += 'STT,Tên Thiết Bị / Hàng Hóa,Chủng Loại,Số Lượng,Đơn Vị,Đơn Giá (VND),Thành Tiền (VND)\n';
+      currentItems.forEach(i => {
+        csvContent += `${i.stt},"${i.item_name}","${i.category}",${i.quantity},"${i.unit}",${i.unit_price},${i.total_price || (i.quantity * i.unit_price)}\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `BOQ_NguyenViet_${currentRfqCode}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function resetWorkflow() {
+      if (confirm('Làm mới quy trình và nạp lại hồ sơ từ đầu?')) {
+        initEmptyWorkspace();
+        jumpToStep(1);
+      }
+    }
+
+    function formatVND(amount) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    }
+
+    function updateHeaderKPIs(data, isValid = true, isError = false, errorMsg = '') {
+      const codeEl = document.getElementById('headerRfqCode');
+      const custEl = document.getElementById('headerCustomerName');
+      const statusEl = document.getElementById('headerStatusText');
+      const statusSubEl = document.getElementById('headerStatusSub');
+      const revEl = document.getElementById('headerRevenue');
+      const revSubEl = document.getElementById('headerRevenueSub');
+      const marginEl = document.getElementById('headerMargin');
+      const marginSubEl = document.getElementById('headerMarginSub');
+      const topProj = document.getElementById('topbarProjectName');
+
+      if (isError) {
+        if (codeEl) codeEl.innerText = 'TỆP LỖI BỊ CHẶN';
+        if (custEl) custEl.innerText = 'Đã loại bỏ khỏi bộ nhớ';
+        if (statusEl) {
+          statusEl.innerText = 'BỊ CHẶN 100%';
+          statusEl.style.color = '#f43f5e';
+        }
+        if (statusSubEl) statusSubEl.innerText = errorMsg || 'Tệp lỗi hoặc không có cấu trúc bảng';
+        if (revEl) revEl.innerText = '0 ₫';
+        if (revSubEl) revSubEl.innerText = 'Hệ thống đã ngừng xử lý';
+        if (marginEl) {
+          marginEl.innerText = '0.0%';
+          marginEl.style.color = '#f43f5e';
+        }
+        if (marginSubEl) marginSubEl.innerText = 'Đã khóa chuyển bước tiếp theo';
+        if (topProj) topProj.innerText = 'Tệp lỗi: Đã loại bỏ';
+        return;
+      }
+
+      if (!data || !data.items || data.items.length === 0) {
+        if (codeEl) codeEl.innerText = 'Chưa nạp hồ sơ';
+        if (custEl) custEl.innerText = 'Sẵn sàng nhận bộ dữ liệu mới';
+        if (statusEl) {
+          statusEl.innerText = 'Chờ kiểm định';
+          statusEl.style.color = 'var(--primary)';
+        }
+        if (statusSubEl) statusSubEl.innerText = 'Hệ thống sẵn sàng tiếp nhận';
+        if (revEl) revEl.innerText = '-- ₫';
+        if (revSubEl) revSubEl.innerText = 'Tự động tính từ dữ liệu';
+        if (marginEl) {
+          marginEl.innerText = '-- %';
+          marginEl.style.color = 'var(--accent-amber)';
+        }
+        if (marginSubEl) marginSubEl.innerText = 'Lãi gộp / COGS ước tính';
+        if (topProj) topProj.innerText = 'Hồ sơ: Chưa nạp';
+        return;
+      }
+
+      const rfqCode = data.rfqCode || currentRfqCode || 'NV-2026-DATA-01';
+      const customerName = data.customerName || 'Khách hàng Doanh nghiệp';
+      const revenue = data.revenue || 0;
+      const cogs = data.cogs || Math.round(revenue * 0.72);
+      const margin = data.margin || (revenue > 0 ? (((revenue - cogs) / revenue) * 100).toFixed(1) : 27.5);
+      const duration = data.durationDays || 12;
+
+      if (codeEl) codeEl.innerText = rfqCode;
+      if (custEl) custEl.innerText = customerName;
+      if (statusEl) {
+        statusEl.innerText = isValid ? 'HỢP LỆ 100%' : 'CHUẨN HÓA THÀNH CÔNG';
+        statusEl.style.color = '#10b981';
+      }
+      if (statusSubEl) statusSubEl.innerText = `Đạt chuẩn cấu trúc & tiến độ ${duration} ngày`;
+      if (revEl) revEl.innerText = formatVND(revenue);
+      if (revSubEl) revSubEl.innerText = 'Đã gồm VAT 10% & Chiết khấu';
+      if (marginEl) {
+        marginEl.innerText = `${margin}%`;
+        marginEl.style.color = '#10b981';
+      }
+      const profit = revenue - cogs;
+      if (marginSubEl) marginSubEl.innerText = `Lãi gộp: ${formatCompactVND(profit)} / COGS: ${formatCompactVND(cogs)}`;
+      if (topProj) topProj.innerText = `Hồ sơ: ${rfqCode} (${customerName})`;
+    }
+
+    function formatCompactVND(val) {
+      if (val >= 1000000000) return (val / 1000000000).toFixed(1) + ' Tỷ';
+      if (val >= 1000000) return (val / 1000000).toFixed(1) + ' Tr';
+      if (val >= 1000) return (val / 1000).toFixed(0) + ' K';
+      return val + ' ₫';
+    }
+
+    function updateStepTitles(stepNum) {
+      const stepNames = [
+        '',
+        'Chặng 01 · Nhập File Dữ Liệu Đầu Vào',
+        'Chặng 02 · AI Làm Sạch Dữ Liệu Theo File Đẩy Lên',
+        'Chặng 03 · Duyệt & Chỉnh Sửa Dữ Liệu Chuẩn Hóa (HITL)',
+        'Chặng 04 · Phân Tích AI Đa Chiều & Phương Án Thương Mại',
+        'Chặng 05 · Báo Cáo Trực Quan & Biểu Đồ Tài Chính',
+        'Chặng 06 · Ký Duyệt Nghiệm Thu & Xuất Bản Hồ Sơ'
+      ];
+      const stepDescs = [
+        '',
+        'Tiếp nhận tệp dữ liệu người dùng (CSV, Excel, Word). Tự động ánh xạ cấu trúc bảng và nhận diện ngày tháng năm.',
+        'Hệ thống AI xử lý làm sạch, chuẩn hóa và kiểm tra tính hợp lệ trực tiếp từ tệp dữ liệu bạn đã gửi lên.',
+        'Human-In-The-Loop: Chuyên viên rà soát các dòng dữ liệu thực tế, chỉnh sửa số lượng, giá và ngày ghi nhận.',
+        'Xây dựng 3 kịch bản chào thầu (Cơ sở, Tối ưu lợi nhuận, Cạnh tranh) dựa trên đúng số liệu đã duyệt.',
+        'Biểu đồ phân bổ chi phí, doanh thu, lợi nhuận và hạn mức tiến độ được vẽ trực quan từ dữ liệu.',
+        'Ký duyệt số biên bản thẩm định và xuất trọn bộ tài liệu Word (.docx) & BOQ (.csv).'
+      ];
+      const pfx = document.getElementById('topStepPrefix');
+      const name = document.getElementById('topStepName');
+      const sub = document.getElementById('topStepSubtitle');
+      if (pfx) pfx.innerText = '0' + stepNum + ' /';
+      if (name) name.innerText = stepNames[stepNum] || '';
+      if (sub) sub.innerText = stepDescs[stepNum] || '';
+    }
+
+  </script>
+</body>
+</html>

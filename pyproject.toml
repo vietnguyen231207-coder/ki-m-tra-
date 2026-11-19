@@ -1,0 +1,9 @@
+[project]
+name = "nguyen-viet-insight"
+version = "1.0.0"
+description = "Hệ thống AI Thẩm định Dữ liệu & Đề xuất Chiến lược - Nguyễn Việt Insight"
+readme = "README.md"
+requires-python = ">=3.9"
+
+[tool.vercel]
+entrypoint = "app:app"

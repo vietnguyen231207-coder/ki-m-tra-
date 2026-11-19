@@ -29,10 +29,36 @@ from backend.handler import (
     PORT
 )
 
+INDEX_HTML_CACHE = None
+
+def get_index_content():
+    global INDEX_HTML_CACHE
+    if INDEX_HTML_CACHE is not None:
+        return INDEX_HTML_CACHE
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html'),
+        os.path.join(BASE_DIR, 'index.html'),
+        'index.html',
+        get_file_path('index.html'),
+        get_file_path('static/index.html'),
+        os.path.join(BASE_DIR, 'static', 'index.html'),
+        'static/index.html'
+    ]
+    for c in candidates:
+        if c and os.path.exists(c):
+            try:
+                with open(c, 'rb') as f:
+                    INDEX_HTML_CACHE = f.read()
+                    return INDEX_HTML_CACHE
+            except Exception:
+                pass
+    INDEX_HTML_CACHE = b"<!DOCTYPE html><html><head><meta charset='utf-8'><title>Nguyen Viet Insight</title></head><body><h1>Nguyen Viet Insight</h1></body></html>"
+    return INDEX_HTML_CACHE
+
 # ----------------------------------------------------------------
-# 1. WSGI Callable (Chuẩn quốc tế PEP 3333 cho Vercel Python Runtime)
+# 1. WSGI Callable (Chuẩn quốc tế PEP 3333)
 # ----------------------------------------------------------------
-def app(environ, start_response):
+def wsgi_app(environ, start_response):
     method = environ.get('REQUEST_METHOD', 'GET')
     path = environ.get('PATH_INFO', '/')
     query_string = environ.get('QUERY_STRING', '')
@@ -52,38 +78,13 @@ def app(environ, start_response):
 
     # Phục vụ trang HTML chính
     if path == '/' or path == '/index.html':
-        index_candidates = [
-            get_file_path('index.html'),
-            os.path.join(BASE_DIR, 'index.html'),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html'),
-            os.path.join(os.getcwd(), 'index.html'),
-            'index.html',
-            get_file_path('static/index.html'),
-            os.path.join(BASE_DIR, 'static', 'index.html'),
-            'static/index.html'
-        ]
-        index_file = None
-        for candidate in index_candidates:
-            if candidate and os.path.exists(candidate):
-                index_file = candidate
-                break
-
-        if not index_file:
-            start_response('500 Internal Server Error', [('Content-Type', 'text/plain; charset=utf-8')] + cors_headers)
-            return [b"Khong tim thay tap tin index.html tren may chu."]
-
-        try:
-            with open(index_file, 'rb') as f:
-                content = f.read()
-            headers = [
-                ('Content-Type', 'text/html; charset=utf-8'),
-                ('Content-Length', str(len(content)))
-            ] + cors_headers
-            start_response('200 OK', headers)
-            return [content]
-        except Exception as e:
-            start_response('500 Internal Server Error', [('Content-Type', 'text/plain; charset=utf-8')] + cors_headers)
-            return [f"Lỗi đọc index.html: {str(e)}".encode('utf-8')]
+        content = get_index_content()
+        headers = [
+            ('Content-Type', 'text/html; charset=utf-8'),
+            ('Content-Length', str(len(content)))
+        ] + cors_headers
+        start_response('200 OK', headers)
+        return [content]
 
     # GET: Tải tệp DOCX / CSV
     if method == 'GET' and path.startswith('/api/download/'):
@@ -256,13 +257,107 @@ def app(environ, start_response):
 
 
 # ----------------------------------------------------------------
-# 2. BaseHTTPRequestHandler cho Vercel / Local Server tương thích ngược
+# 2. ASGI Callable (Hỗ trợ Uvicorn / Asyncio Vercel Python Runtime)
+# ----------------------------------------------------------------
+async def asgi_app(scope, receive, send):
+    if scope.get('type') == 'lifespan':
+        while True:
+            message = await receive()
+            if message['type'] == 'lifespan.startup':
+                await send({'type': 'lifespan.startup.complete'})
+            elif message['type'] == 'lifespan.shutdown':
+                await send({'type': 'lifespan.shutdown.complete'})
+                return
+    if scope.get('type') != 'http':
+        return
+
+    method = scope.get('method', 'GET')
+    path = scope.get('path', '/')
+
+    if method == 'OPTIONS':
+        headers = [
+            (b'content-type', b'text/plain'),
+            (b'access-control-allow-origin', b'*'),
+            (b'access-control-allow-methods', b'GET, POST, OPTIONS'),
+            (b'access-control-allow-headers', b'Content-Type'),
+        ]
+        await send({'type': 'http.response.start', 'status': 200, 'headers': headers})
+        await send({'type': 'http.response.body', 'body': b'', 'more_body': False})
+        return
+
+    if method == 'GET' and (path == '/' or path == '/index.html'):
+        content = get_index_content()
+        headers = [
+            (b'content-type', b'text/html; charset=utf-8'),
+            (b'content-length', str(len(content)).encode('ascii')),
+            (b'access-control-allow-origin', b'*'),
+            (b'cache-control', b'no-cache'),
+        ]
+        await send({'type': 'http.response.start', 'status': 200, 'headers': headers})
+        await send({'type': 'http.response.body', 'body': content, 'more_body': False})
+        return
+
+    body = b''
+    more_body = True
+    while more_body:
+        message = await receive()
+        body += message.get('body', b'')
+        more_body = message.get('more_body', False)
+
+    content_type = ''
+    for k, v in scope.get('headers', []):
+        if k.lower() == b'content-type':
+            content_type = v.decode('latin1')
+            break
+
+    environ = {
+        'REQUEST_METHOD': method,
+        'PATH_INFO': path,
+        'QUERY_STRING': scope.get('query_string', b'').decode('latin1'),
+        'CONTENT_TYPE': content_type,
+        'CONTENT_LENGTH': str(len(body)),
+        'wsgi.input': io.BytesIO(body)
+    }
+
+    res_status = '200 OK'
+    res_headers = []
+    def start_response(status, headers):
+        nonlocal res_status, res_headers
+        res_status = status
+        res_headers = headers
+
+    chunks = wsgi_app(environ, start_response)
+    status_code = int(res_status.split(' ')[0])
+    asgi_headers = [(k.lower().encode('latin1'), v.encode('latin1')) for k, v in res_headers]
+
+    await send({'type': 'http.response.start', 'status': status_code, 'headers': asgi_headers})
+    for c in chunks:
+        await send({'type': 'http.response.body', 'body': c, 'more_body': False})
+
+
+# ----------------------------------------------------------------
+# 3. Universal Entrypoint (Tương thích đồng thời ASGI & WSGI)
+# ----------------------------------------------------------------
+def app(*args, **kwargs):
+    if len(args) == 3:
+        return asgi_app(args[0], args[1], args[2])
+    elif len(args) == 2:
+        return wsgi_app(args[0], args[1])
+    elif 'scope' in kwargs:
+        return asgi_app(kwargs['scope'], kwargs['receive'], kwargs['send'])
+    elif 'environ' in kwargs:
+        return wsgi_app(kwargs['environ'], kwargs['start_response'])
+    return wsgi_app(args[0], args[1])
+
+application = app
+
+
+# ----------------------------------------------------------------
+# 4. BaseHTTPRequestHandler cho Vercel / Local Server tương thích ngược
 # ----------------------------------------------------------------
 class handler(NguyenVietRequestHandler):
     """Entrypoint tương thích ngược cho Vercel Serverless Function."""
     pass
-
-application = app
 
 
 # ----------------------------------------------------------------
